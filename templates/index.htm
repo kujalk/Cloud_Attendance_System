@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+
+  <title>Attendance System</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <script src='https://kit.fontawesome.com/a076d05399.js'></script>
+
+  <style>
+    .fa-user-graduate:hover {
+    color: royalblue;
+    }
+
+    .fa-chalkboard-teacher:hover {
+    color: royalblue;
+    }
+
+    .fa-book-open:hover {
+    color: royalblue;
+    }
+  </style>
+  
+
+</head>
+
+
+<body>
+
+<nav class="navbar navbar-inverse">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">Attendance System</a>
+    </div>
+
+    <ul class="nav navbar-nav">
+      <li class="active"><a href="#">Home</a></li>
+      <li><a href="student_insert">Student</a></li>
+      <li><a href="attendance_insert">Attendance</a></li>
+      <li><a href="subjects_viewall">Subjects</a></li>
+    </ul>
+
+    <ul class="nav navbar-nav navbar-right">
+      <li><a href="{% url 'logout' %}">
+        Hi {{ user.first_name }}      
+        
+        <span class="glyphicon glyphicon-log-in"></span> Log Out</a></li>
+    </ul>
+
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="jumbotron" style="background-color:lightblue;background-image:url('static/images/cloud.jpg');">
+    <h1 style="color: blue;font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;font-style: italic;">Attendance System</h1>
+    <p style="font-weight: 100;">This is a Cloud based Student Attendance System</p>
+  </div>    
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-1"> </div> 
+    <div class="col-sm-3" style="background-color:lavender;">
+      <div class="card">
+        <div class="card-body" style="text-align: center;">
+          <h4 style="text-align: center;color: grey;"> Manage Student Records</h1>
+            <i class='fas fa-user-graduate' style='font-size:120px;'></i>
+        </div>    
+      </div>
+    </div>
+
+    <div class="col-sm-3" style="background-color:lavenderblush;">
+      <div class="card">
+        <div class="card-body" style="text-align: center;">
+          <h4 style="text-align: center;color: grey;"> Manage Attendance</h1>
+            <i class='fas fa-chalkboard-teacher' style='font-size:120px;'></i>           
+        </div>    
+      </div>
+    </div>
+
+    <div class="col-sm-3" style="background-color:lightgray">
+      <div class="card">
+        <div class="card-body" style="text-align: center;">
+          <h4 style="text-align: center;color: grey;"> Manage Subjects</h1>
+            <i class='fas fa-book-open' style='font-size:120px;'></i>
+        </div>    
+      </div>  
+      </div>
+
+      <div class="col-sm-1"> </div> 
+    </div>
+
+  
+  </div>
+</div>
+
+</body>
+
+<div class="footer" style="position: fixed;left: 0;bottom: 0;width:100%;background-color: grey;color: white;text-align: center;">
+  <p>All Rights Reserved</p>
+
+</html>

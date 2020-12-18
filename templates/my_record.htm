@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+
+  <title>Attendance System</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <script src='https://kit.fontawesome.com/a076d05399.js'></script>
+
+</head>
+
+
+<body>
+
+<nav class="navbar navbar-inverse">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">Attendance System</a>
+    </div>
+
+    <ul class="nav navbar-nav"> 
+      <li class="active"><a href="home">Personal Details</a></li>
+      <li><a href="viewPersonal">Attendance</a></li>
+    </ul>
+
+    <ul class="nav navbar-nav navbar-right">
+      <li><a href="{% url 'logout' %}">
+        Hi {{ user.first_name }}      
+        
+        <span class="glyphicon glyphicon-log-in"></span> Log Out</a></li>
+    </ul>
+
+  </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3">
+          <i class='fas fa-user-graduate' style='font-size:180px; color: lightgray;text-align: center;'></i>
+        </div>
+
+        <div class="col-sm-6">
+           
+            <table class="table table-hover">             
+              <tbody>
+          
+                  <tr>
+                  <th scope="row">Student ID</th>
+                  <td>{{ student.studentId }}</td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">First Name</th>
+                    <td>{{ student.firstName }}</td>
+                  </tr>
+                  
+                  <tr>
+                    <th scope="row">Last Name</th>
+                    <td>{{ student.lastName }}</td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Address</th>
+                    <td>{{ student.address }}</td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Mobile</th>
+                    <td>{{ student.mobileNo }}</td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Department</th>
+                    <td>{{ student.department }}</td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Email ID</th>
+                    <td>{{ student.email }}</td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Record Added</th>
+                    <td>{{ student.recordAdded }}</td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Record Last Modified</th>
+                    <td>{{ student.recordModified }}</td>
+                  </tr>
+  
+              </tbody>
+            </table>
+
+        </div>
+        <div class="col-sm-3"></div>
+
+    </div>
+
+</div>
+</body>
+
+<div class="footer" style="position: fixed;left: 0;bottom: 0;width:100%;background-color: grey;color: white;text-align: center;">
+  <p>All Rights Reserved</p>
+
+</html>
