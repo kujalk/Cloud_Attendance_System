@@ -4,4 +4,4 @@ Cloud based student attendance system
 Architecture
 ---------------
 
-![alt text](https://github.com/kujalk/Auto_S3_Download_EC2/blob/main/Architecture.PNG)
+![alt text](https://github.com/kujalk/Cloud_Attendance_System/blob/main/cloud2.PNG)
