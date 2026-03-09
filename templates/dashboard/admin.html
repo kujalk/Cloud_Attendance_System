@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Dashboard</li>{% endblock %}
+
+{% block content %}
+<!-- Welcome banner -->
+<div style="background:linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95);border-radius:16px;padding:1.75rem 2rem;margin-bottom:1.5rem;position:relative;overflow:hidden;" class="fade-in">
+  <div style="position:absolute;width:250px;height:250px;background:radial-gradient(circle,rgba(99,102,241,.4),transparent 70%);top:-60px;right:-40px;border-radius:50%;"></div>
+  <div style="position:absolute;width:150px;height:150px;background:radial-gradient(circle,rgba(168,85,247,.3),transparent 70%);bottom:-40px;left:20%;border-radius:50%;"></div>
+  <div style="position:relative;z-index:1;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <h2 style="font-size:1.5rem;font-weight:700;color:#fff;margin:0">Good day, {{ request.user.get_full_name|default:request.user.username }} 👋</h2>
+        <p style="color:rgba(255,255,255,.65);margin:.3rem 0 0;font-size:.875rem">{{ today|date:"l, F j, Y" }} &mdash; Here's your attendance overview.</p>
+      </div>
+      <div style="display:flex;gap:.75rem;">
+        <a href="{% url 'mark_attendance' %}" class="btn btn-primary btn-sm">
+          <i class="fas fa-pen-to-square"></i> Mark Attendance
+        </a>
+        <a href="{% url 'student_create' %}" class="btn btn-outline btn-sm">
+          <i class="fas fa-user-plus"></i> Add Student
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stat cards -->
+<div class="stats-grid fade-in-delay-1" style="margin-bottom:1.5rem">
+  <div class="stat-card">
+    <div class="stat-icon indigo"><i class="fas fa-user-graduate"></i></div>
+    <div class="stat-content">
+      <div class="stat-value count-up" data-target="{{ total_students }}">{{ total_students }}</div>
+      <div class="stat-label">Total Students</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon emerald"><i class="fas fa-circle-check"></i></div>
+    <div class="stat-content">
+      <div class="stat-value count-up" data-target="{{ today_present }}">{{ today_present }}</div>
+      <div class="stat-label">Present Today</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon rose"><i class="fas fa-circle-xmark"></i></div>
+    <div class="stat-content">
+      <div class="stat-value count-up" data-target="{{ today_absent }}">{{ today_absent }}</div>
+      <div class="stat-label">Absent Today</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber"><i class="fas fa-clock"></i></div>
+    <div class="stat-content">
+      <div class="stat-value count-up" data-target="{{ today_late }}">{{ today_late }}</div>
+      <div class="stat-label">Late Today</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple"><i class="fas fa-book-open"></i></div>
+    <div class="stat-content">
+      <div class="stat-value count-up" data-target="{{ total_subjects }}">{{ total_subjects }}</div>
+      <div class="stat-label">Subjects</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon cyan"><i class="fas fa-building"></i></div>
+    <div class="stat-content">
+      <div class="stat-value count-up" data-target="{{ total_departments }}">{{ total_departments }}</div>
+      <div class="stat-label">Departments</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div class="charts-grid fade-in-delay-2" style="margin-bottom:1.5rem">
+  <!-- Weekly trend -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-chart-line" style="color:var(--accent);margin-right:.5rem"></i>Weekly Attendance Trend</h3>
+      <span class="fs-xs text-muted">Last 7 days</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-container" style="height:280px;">
+        <canvas id="weeklyChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status distribution -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-chart-donut" style="color:var(--purple);margin-right:.5rem"></i>Status Breakdown</h3>
+      <span class="fs-xs text-muted">All time</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-container" style="height:230px;">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom row: subject stats + recent activity -->
+<div style="display:grid;grid-template-columns:1fr 1.4fr;gap:1rem;" class="fade-in-delay-3">
+
+  <!-- Subject attendance -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-book-open" style="color:var(--teal);margin-right:.5rem"></i>Subject Attendance</h3>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if subjects_stats %}
+      <table class="table">
+        <thead><tr><th>Subject</th><th>Present</th><th>Rate</th></tr></thead>
+        <tbody>
+          {% for s in subjects_stats %}
+          <tr>
+            <td>{{ s.title }}</td>
+            <td>{{ s.present }}/{{ s.total }}</td>
+            <td>
+              {% if s.total > 0 %}
+              {% widthratio s.present s.total 100 as pct %}
+              <div style="display:flex;align-items:center;gap:.5rem;">
+                <div class="progress-bar-wrap" style="flex:1">
+                  <div class="progress-bar-fill {% if pct >= 75 %}success{% elif pct >= 50 %}warning{% else %}danger{% endif %}"
+                       style="width:{{ pct }}%"></div>
+                </div>
+                <span class="fs-xs fw-600 {% if pct >= 75 %}text-success{% elif pct >= 50 %}text-warning{% else %}text-danger{% endif %}">{{ pct }}%</span>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-book-open"></i><p>No data yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent attendance -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-clock-rotate-left" style="color:var(--cyan);margin-right:.5rem"></i>Recent Activity</h3>
+      <a href="{% url 'attendance_list' %}" class="btn btn-outline btn-sm">View all</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if recent_attendance %}
+      <table class="table">
+        <thead>
+          <tr><th>Student</th><th>Subject</th><th>Date</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for r in recent_attendance %}
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:.6rem">
+                <div class="avatar sm">{{ r.student.first_name|slice:":1" }}{{ r.student.last_name|slice:":1" }}</div>
+                {{ r.student.full_name }}
+              </div>
+            </td>
+            <td class="text-muted fs-sm">{{ r.subject.title|default:"—" }}</td>
+            <td class="text-muted fs-sm">{{ r.lecture_date }}</td>
+            <td><span class="badge badge-{{ r.status|lower }}">{{ r.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-clipboard"></i><p>No attendance records yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Weekly bar chart ────────────────────────────────────────────────────────
+const wLabels  = {{ chart_labels|safe }};
+const wPresent = {{ chart_present|safe }};
+const wAbsent  = {{ chart_absent|safe }};
+const wLate    = {{ chart_late|safe }};
+
+const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+new Chart(weeklyCtx, {
+  type: 'bar',
+  data: {
+    labels: wLabels,
+    datasets: [
+      {
+        label: 'Present',
+        data: wPresent,
+        backgroundColor: 'rgba(34,197,94,.75)',
+        borderRadius: 6,
+        borderSkipped: false,
+      },
+      {
+        label: 'Absent',
+        data: wAbsent,
+        backgroundColor: 'rgba(239,68,68,.7)',
+        borderRadius: 6,
+        borderSkipped: false,
+      },
+      {
+        label: 'Late',
+        data: wLate,
+        backgroundColor: 'rgba(245,158,11,.7)',
+        borderRadius: 6,
+        borderSkipped: false,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#475569', font: { family: 'Inter', size: 11 } } },
+      tooltip: { backgroundColor: '#1e293b', titleColor: '#f1f5f9', bodyColor: '#94a3b8', borderColor: 'rgba(0,0,0,.1)', borderWidth: 1 },
+    },
+    scales: {
+      x: { stacked: false, grid: { color: 'rgba(0,0,0,.06)' }, ticks: { color: '#64748b', font: { family: 'Inter', size: 11 } } },
+      y: { grid: { color: 'rgba(0,0,0,.06)' }, ticks: { color: '#64748b', font: { family: 'Inter', size: 11 }, stepSize: 1 } },
+    },
+  },
+});
+
+// ── Status doughnut chart ───────────────────────────────────────────────────
+const sLabels = {{ status_labels|safe }};
+const sCounts = {{ status_counts|safe }};
+const colorMap = { Present:'rgba(34,197,94,.8)', Absent:'rgba(239,68,68,.8)', Late:'rgba(245,158,11,.8)', Excused:'rgba(6,182,212,.8)' };
+
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+  type: 'doughnut',
+  data: {
+    labels: sLabels,
+    datasets: [{
+      data: sCounts,
+      backgroundColor: sLabels.map(l => colorMap[l] || 'rgba(148,163,184,.8)'),
+      borderColor: '#ffffff',
+      borderWidth: 3,
+      hoverOffset: 8,
+    }],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#475569', font: { family: 'Inter', size: 11 }, padding: 16, boxWidth: 12 } },
+      tooltip: { backgroundColor: '#1e293b', titleColor: '#f1f5f9', bodyColor: '#94a3b8', borderColor: 'rgba(0,0,0,.1)', borderWidth: 1 },
+    },
+  },
+});
+</script>
+{% endblock %}

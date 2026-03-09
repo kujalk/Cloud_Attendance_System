@@ -1,0 +1,247 @@
+name: Destroy AWS Stack
+
+# ── Manual trigger ONLY — never runs on push ──────────────────────────────────
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: |
+          Type  DELETE  to confirm destroying all AWS resources.
+          This will delete the CloudFormation stack, Aurora cluster (with final
+          snapshot), Elastic Beanstalk environment, VPC, IAM roles, and the S3
+          deployment bucket.  THIS CANNOT BE UNDONE.
+        required: true
+        type: string
+      delete_aurora_snapshot:
+        description: 'Also delete the final Aurora snapshot? (yes / no)'
+        required: true
+        default: 'no'
+        type: choice
+        options: [no, yes]
+
+env:
+  APP_NAME:   CloudAttendanceSystem
+  STACK_NAME: cloudattend-production
+
+jobs:
+  destroy:
+    name: Destroy all AWS resources
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ── 1. Guard: require exact confirmation string ───────────────────────────
+      - name: Confirm destruction
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "DELETE" ]; then
+            echo "❌ Confirmation string does not match. You must type DELETE (all caps)."
+            exit 1
+          fi
+          echo "✅ Confirmed. Proceeding with destruction."
+
+      # ── 2. AWS credentials ───────────────────────────────────────────────────
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      # ── 3. Gather existing resources before deletion ──────────────────────────
+      - name: Gather resource info
+        id: probe
+        run: |
+          S3_BUCKET="cloudattend-deployments-${{ github.repository_owner }}"
+          echo "s3_bucket=$S3_BUCKET" >> "$GITHUB_OUTPUT"
+
+          # CF stack status
+          CF_STATUS=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].StackStatus" \
+            --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+          echo "cf_status=$CF_STATUS" >> "$GITHUB_OUTPUT"
+
+          # Aurora snapshot identifier (created by DeletionPolicy: Snapshot)
+          CLUSTER_ID=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='AuroraEndpoint'].OutputValue" \
+            --output text 2>/dev/null | cut -d. -f1 || echo "")
+          echo "aurora_cluster_prefix=$CLUSTER_ID" >> "$GITHUB_OUTPUT"
+
+          # S3 bucket exists?
+          S3_EXISTS=$(aws s3api head-bucket --bucket "$S3_BUCKET" 2>/dev/null \
+            && echo "true" || echo "false")
+          echo "s3_exists=$S3_EXISTS" >> "$GITHUB_OUTPUT"
+
+          echo "### Resources to be destroyed" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Resource | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CloudFormation stack \`$STACK_NAME\` | \`$CF_STATUS\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| S3 bucket \`$S3_BUCKET\` | $S3_EXISTS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Delete Aurora snapshot | ${{ github.event.inputs.delete_aurora_snapshot }} |" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 4. Terminate EB environments first (speeds up CF deletion) ────────────
+      - name: Terminate EB environments
+        run: |
+          # List all non-terminated environments for our app
+          ENVS=$(aws elasticbeanstalk describe-environments \
+            --application-name "$APP_NAME" \
+            --query "Environments[?Status!='Terminated'].EnvironmentName" \
+            --output text 2>/dev/null || echo "")
+
+          if [ -n "$ENVS" ]; then
+            for ENV in $ENVS; do
+              echo "Terminating EB environment: $ENV"
+              aws elasticbeanstalk terminate-environment \
+                --environment-name "$ENV" \
+                --force-terminate 2>/dev/null || true
+            done
+
+            echo "Waiting for EB environments to terminate..."
+            for ENV in $ENVS; do
+              aws elasticbeanstalk wait environment-terminated \
+                --application-name "$APP_NAME" \
+                --environment-names "$ENV" || true
+            done
+            echo "All EB environments terminated."
+          else
+            echo "No active EB environments found."
+          fi
+
+      # ── 5. Delete all EB application versions (required before app deletion) ──
+      - name: Delete EB application versions
+        run: |
+          VERSIONS=$(aws elasticbeanstalk describe-application-versions \
+            --application-name "$APP_NAME" \
+            --query "ApplicationVersions[].VersionLabel" \
+            --output text 2>/dev/null || echo "")
+
+          if [ -n "$VERSIONS" ]; then
+            echo "Deleting $(echo $VERSIONS | wc -w) application version(s)..."
+            for VER in $VERSIONS; do
+              aws elasticbeanstalk delete-application-version \
+                --application-name "$APP_NAME" \
+                --version-label "$VER" \
+                --delete-source-bundle 2>/dev/null || true
+            done
+          else
+            echo "No application versions found."
+          fi
+
+      # ── 6. Delete the CloudFormation stack ───────────────────────────────────
+      - name: Delete CloudFormation stack
+        if: steps.probe.outputs.cf_status != 'DOES_NOT_EXIST'
+        run: |
+          echo "Deleting CloudFormation stack: $STACK_NAME"
+          echo "(Aurora will be deleted with a final snapshot — see RDS console)"
+
+          aws cloudformation delete-stack --stack-name "$STACK_NAME"
+
+          echo "Waiting for stack deletion (Aurora deletion may take 5-10 min)..."
+          aws cloudformation wait stack-delete-complete \
+            --stack-name "$STACK_NAME"
+
+          echo "CloudFormation stack deleted."
+
+      # ── 7. Empty and delete S3 deployment bucket ──────────────────────────────
+      - name: Delete S3 deployment bucket
+        if: steps.probe.outputs.s3_exists == 'true'
+        run: |
+          S3_BUCKET="${{ steps.probe.outputs.s3_bucket }}"
+          echo "Emptying bucket: $S3_BUCKET (including all versions)..."
+
+          # Delete all object versions (required for versioned buckets)
+          aws s3api list-object-versions \
+            --bucket "$S3_BUCKET" \
+            --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' \
+            --output json 2>/dev/null | \
+          python3 -c "
+          import json, sys, subprocess
+          data = json.load(sys.stdin)
+          objs = data.get('Objects')
+          if objs:
+              batch = json.dumps({'Objects': objs, 'Quiet': True})
+              subprocess.run(['aws', 's3api', 'delete-objects',
+                              '--bucket', '$S3_BUCKET',
+                              '--delete', batch], check=False)
+              print(f'Deleted {len(objs)} object version(s).')
+          else:
+              print('No versioned objects found.')
+          "
+
+          # Delete all delete markers
+          aws s3api list-object-versions \
+            --bucket "$S3_BUCKET" \
+            --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' \
+            --output json 2>/dev/null | \
+          python3 -c "
+          import json, sys, subprocess
+          data = json.load(sys.stdin)
+          objs = data.get('Objects')
+          if objs:
+              batch = json.dumps({'Objects': objs, 'Quiet': True})
+              subprocess.run(['aws', 's3api', 'delete-objects',
+                              '--bucket', '$S3_BUCKET',
+                              '--delete', batch], check=False)
+              print(f'Deleted {len(objs)} delete marker(s).')
+          else:
+              print('No delete markers found.')
+          "
+
+          # Now delete the bucket itself
+          aws s3api delete-bucket --bucket "$S3_BUCKET"
+          echo "S3 bucket $S3_BUCKET deleted."
+
+      # ── 8. (Optional) Delete Aurora final snapshot ────────────────────────────
+      - name: Delete Aurora snapshot
+        if: github.event.inputs.delete_aurora_snapshot == 'yes'
+        run: |
+          # CloudFormation names the snapshot: <cluster-id>-final-snapshot
+          # List all manual cluster snapshots matching our app name
+          SNAPSHOTS=$(aws rds describe-db-cluster-snapshots \
+            --snapshot-type manual \
+            --query "DBClusterSnapshots[?contains(DBClusterSnapshotIdentifier,'cloudattendancesystem')].DBClusterSnapshotIdentifier" \
+            --output text 2>/dev/null || echo "")
+
+          if [ -n "$SNAPSHOTS" ]; then
+            for SNAP in $SNAPSHOTS; do
+              echo "Deleting Aurora snapshot: $SNAP"
+              aws rds delete-db-cluster-snapshot \
+                --db-cluster-snapshot-identifier "$SNAP" || true
+            done
+          else
+            echo "No Aurora snapshots matching 'cloudattendancesystem' found."
+          fi
+
+      # ── 9. Verify everything is gone ─────────────────────────────────────────
+      - name: Verify cleanup
+        if: always()
+        run: |
+          S3_BUCKET="${{ steps.probe.outputs.s3_bucket }}"
+
+          # Check CF
+          CF_REMAINING=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].StackStatus" \
+            --output text 2>/dev/null || echo "DELETED")
+
+          # Check S3
+          S3_REMAINING=$(aws s3api head-bucket --bucket "$S3_BUCKET" 2>/dev/null \
+            && echo "EXISTS" || echo "DELETED")
+
+          # Check EB app
+          EB_REMAINING=$(aws elasticbeanstalk describe-applications \
+            --application-names "$APP_NAME" \
+            --query "length(Applications)" \
+            --output text 2>/dev/null || echo "0")
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Destruction result" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Resource | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CloudFormation stack | $CF_REMAINING |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| S3 bucket | $S3_REMAINING |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| EB application | $([ "$EB_REMAINING" == "0" ] && echo "DELETED" || echo "EXISTS ($EB_REMAINING)") |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> Aurora final snapshot retained in RDS console unless 'Delete Aurora snapshot = yes' was selected." \
+            >> "$GITHUB_STEP_SUMMARY"

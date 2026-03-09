@@ -1,0 +1,327 @@
+name: Deploy to AWS
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+# • Every push to main  → full deploy (infra + app)
+# • Manual dispatch     → choose scope
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Deployment scope'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all          # CloudFormation + EB app (default)
+          - infra-only   # CloudFormation stack only
+          - app-only     # EB app version only (stack must already exist)
+
+# ── Required GitHub Secrets ────────────────────────────────────────────────────
+# AWS_ACCESS_KEY_ID        IAM access key  (needs CF + EB + S3 + IAM + EC2 + RDS perms)
+# AWS_SECRET_ACCESS_KEY    IAM secret key
+# AWS_REGION               e.g. us-east-1
+# DB_PASSWORD              Aurora master password (≥ 8 chars)
+# DJANGO_SECRET_KEY        50-char random string
+#
+# Optional — email notifications:
+# EMAIL_HOST               smtp.gmail.com
+# EMAIL_PORT               587
+# EMAIL_USE_TLS            True
+# EMAIL_HOST_USER          your@gmail.com
+# EMAIL_HOST_PASSWORD      16-char Gmail App Password
+# DEFAULT_FROM_EMAIL       CloudAttend <your@gmail.com>
+# ATTENDANCE_ADMIN_EMAILS  comma-separated admin emails to CC
+# SITE_URL                 https://your-app.elasticbeanstalk.com
+
+env:
+  APP_NAME:   CloudAttendanceSystem
+  ENV_NAME:   CloudAttendanceSystem-production
+  STACK_NAME: cloudattend-production
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. AWS credentials ───────────────────────────────────────────────────
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      # ── 3. Probe what already exists ─────────────────────────────────────────
+      - name: Check existing AWS resources
+        id: probe
+        run: |
+          # ── CloudFormation stack ──
+          CF_STATUS=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].StackStatus" \
+            --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+          echo "cf_status=$CF_STATUS" | tee -a "$GITHUB_OUTPUT"
+
+          # A ROLLBACK_COMPLETE stack cannot be updated — must be deleted first
+          if [[ "$CF_STATUS" == "ROLLBACK_COMPLETE" ]]; then
+            echo "Stack is in ROLLBACK_COMPLETE — deleting before recreating..."
+            aws cloudformation delete-stack --stack-name "$STACK_NAME"
+            aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
+            CF_STATUS="DOES_NOT_EXIST"
+            echo "cf_status=DOES_NOT_EXIST" >> "$GITHUB_OUTPUT"
+          fi
+
+          # ── EB Application ──
+          EB_APP_COUNT=$(aws elasticbeanstalk describe-applications \
+            --application-names "$APP_NAME" \
+            --query "length(Applications)" \
+            --output text 2>/dev/null || echo "0")
+          EB_APP_EXISTS=$([[ "$EB_APP_COUNT" -gt "0" ]] && echo "true" || echo "false")
+          echo "eb_app_exists=$EB_APP_EXISTS" | tee -a "$GITHUB_OUTPUT"
+
+          # ── EB Environment ──
+          EB_ENV_STATUS=$(aws elasticbeanstalk describe-environments \
+            --application-name "$APP_NAME" \
+            --environment-names "$ENV_NAME" \
+            --query "Environments[?Status!='Terminated'].Status|[0]" \
+            --output text 2>/dev/null || echo "None")
+          EB_ENV_EXISTS=$([[ "$EB_ENV_STATUS" != "None" && "$EB_ENV_STATUS" != "Terminated" ]] \
+            && echo "true" || echo "false")
+          echo "eb_env_exists=$EB_ENV_EXISTS" | tee -a "$GITHUB_OUTPUT"
+          echo "eb_env_status=$EB_ENV_STATUS" | tee -a "$GITHUB_OUTPUT"
+
+          # ── Resolve EB platform (use secret, or auto-detect latest Python 3.12) ──
+          if [ -n "${{ secrets.EB_PLATFORM }}" ]; then
+            PLATFORM="${{ secrets.EB_PLATFORM }}"
+          else
+            PLATFORM=$(aws elasticbeanstalk list-available-solution-stacks \
+              --query "SolutionStacks[?contains(@,'Python 3.12')]|[0]" \
+              --output text)
+            echo "Auto-detected EB platform: $PLATFORM"
+          fi
+          echo "eb_platform=$PLATFORM" | tee -a "$GITHUB_OUTPUT"
+
+          # ── Summary ──
+          echo "### Resource probe" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Resource | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CloudFormation stack \`$STACK_NAME\` | \`$CF_STATUS\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| EB Application \`$APP_NAME\` | $EB_APP_EXISTS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| EB Environment \`$ENV_NAME\` | $EB_ENV_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| EB Platform | $PLATFORM |" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 4. Deploy / update CloudFormation stack ──────────────────────────────
+      #    `aws cloudformation deploy` is idempotent:
+      #      • Stack does not exist → CREATE_COMPLETE
+      #      • Stack exists, template/params changed → UPDATE_COMPLETE
+      #      • Stack exists, nothing changed → no-op (--no-fail-on-empty-changeset)
+      #    This step also creates the EB Application + Environment on first run.
+      - name: Deploy CloudFormation stack (create or update)
+        if: |
+          github.event.inputs.scope != 'app-only'
+        run: |
+          echo "CF status before deploy: ${{ steps.probe.outputs.cf_status }}"
+          aws cloudformation deploy \
+            --template-file cloudformation/template.yaml \
+            --stack-name "$STACK_NAME" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              ApplicationName="$APP_NAME" \
+              EnvironmentName=production \
+              SolutionStackName="${{ steps.probe.outputs.eb_platform }}" \
+              DBPassword="${{ secrets.DB_PASSWORD }}" \
+              DjangoSecretKey="${{ secrets.DJANGO_SECRET_KEY }}"
+
+          # Show outputs
+          aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs" \
+            --output table
+
+      # ── 5. Package the Django application ────────────────────────────────────
+      - name: Create deployment package
+        if: github.event.inputs.scope != 'infra-only'
+        run: |
+          zip -r deploy.zip . \
+            --exclude "*.git*" \
+            --exclude ".github/*" \
+            --exclude "venv/*" ".venv/*" "env/*" \
+            --exclude ".env" \
+            --exclude "db.sqlite3" \
+            --exclude "media/*" "staticfiles/*" \
+            --exclude "__pycache__/*" "*.pyc" "*.pyo" \
+            --exclude "docs/generate_diagram.py" \
+            --exclude "docs/*.png" "docs/*.svg"
+          echo "Package size: $(du -sh deploy.zip | cut -f1)"
+
+      # ── 6. Ensure S3 deployment bucket exists ────────────────────────────────
+      - name: Ensure S3 bucket exists
+        if: github.event.inputs.scope != 'infra-only'
+        run: |
+          S3_BUCKET="cloudattend-deployments-${{ github.repository_owner }}"
+          echo "S3_BUCKET=$S3_BUCKET" >> "$GITHUB_ENV"
+
+          if aws s3api head-bucket --bucket "$S3_BUCKET" 2>/dev/null; then
+            echo "Bucket $S3_BUCKET already exists"
+          else
+            echo "Creating bucket $S3_BUCKET in ${{ secrets.AWS_REGION }}"
+            if [ "${{ secrets.AWS_REGION }}" = "us-east-1" ]; then
+              aws s3api create-bucket --bucket "$S3_BUCKET" --region us-east-1
+            else
+              aws s3api create-bucket --bucket "$S3_BUCKET" \
+                --region "${{ secrets.AWS_REGION }}" \
+                --create-bucket-configuration LocationConstraint="${{ secrets.AWS_REGION }}"
+            fi
+          fi
+          # Block public access and enable versioning
+          aws s3api put-public-access-block --bucket "$S3_BUCKET" \
+            --public-access-block-configuration \
+              BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+          aws s3api put-bucket-versioning --bucket "$S3_BUCKET" \
+            --versioning-configuration Status=Enabled
+
+      # ── 7. Upload bundle and create EB application version ───────────────────
+      - name: Upload bundle and create EB version
+        if: github.event.inputs.scope != 'infra-only'
+        id: version
+        run: |
+          VERSION_LABEL="v-$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::8}"
+          echo "VERSION_LABEL=$VERSION_LABEL" >> "$GITHUB_ENV"
+          echo "label=$VERSION_LABEL" >> "$GITHUB_OUTPUT"
+
+          aws s3 cp deploy.zip "s3://$S3_BUCKET/$VERSION_LABEL.zip"
+
+          # Ensure EB application exists (it's created by CF, but guard anyway)
+          if [[ "${{ steps.probe.outputs.eb_app_exists }}" == "false" ]]; then
+            aws elasticbeanstalk create-application \
+              --application-name "$APP_NAME" \
+              --description "Cloud Attendance System"
+          fi
+
+          aws elasticbeanstalk create-application-version \
+            --application-name "$APP_NAME" \
+            --version-label "$VERSION_LABEL" \
+            --source-bundle "S3Bucket=$S3_BUCKET,S3Key=$VERSION_LABEL.zip" \
+            --auto-create-application
+
+      # ── 8. Deploy version to EB environment ──────────────────────────────────
+      - name: Deploy to EB environment (create or update)
+        if: github.event.inputs.scope != 'infra-only'
+        run: |
+          if [[ "${{ steps.probe.outputs.eb_env_exists }}" == "true" ]]; then
+            # Environment already exists — update it with new version
+            echo "Updating existing environment $ENV_NAME..."
+            aws elasticbeanstalk update-environment \
+              --application-name "$APP_NAME" \
+              --environment-name "$ENV_NAME" \
+              --version-label "$VERSION_LABEL"
+          else
+            # Environment doesn't exist yet (CF may have just created it without a version)
+            # Check if CF just created it
+            CF_ENV=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
+              --output text 2>/dev/null || echo "")
+            if [ -n "$CF_ENV" ]; then
+              echo "Deploying version to CF-created environment $CF_ENV..."
+              aws elasticbeanstalk update-environment \
+                --application-name "$APP_NAME" \
+                --environment-name "$CF_ENV" \
+                --version-label "$VERSION_LABEL"
+            else
+              echo "No environment found — creating $ENV_NAME from CF outputs..."
+              echo "ERROR: EB environment not found. Ensure CloudFormation stack deployed successfully."
+              exit 1
+            fi
+          fi
+
+      # ── 9. Wait for EB environment to become Ready ───────────────────────────
+      - name: Wait for EB environment Ready
+        if: github.event.inputs.scope != 'infra-only'
+        run: |
+          # Resolve actual env name (CF may have named it differently)
+          ACTUAL_ENV=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
+            --output text 2>/dev/null || echo "$ENV_NAME")
+
+          echo "Waiting for $ACTUAL_ENV to become Ready (timeout: 20 min)..."
+          aws elasticbeanstalk wait environment-updated \
+            --application-name "$APP_NAME" \
+            --environment-names "$ACTUAL_ENV"
+
+          # Verify health
+          HEALTH=$(aws elasticbeanstalk describe-environments \
+            --application-name "$APP_NAME" \
+            --environment-names "$ACTUAL_ENV" \
+            --query "Environments[0].Health" \
+            --output text)
+          echo "Environment health: $HEALTH"
+          [[ "$HEALTH" == "Green" || "$HEALTH" == "Ok" ]] || \
+            echo "Warning: environment health is $HEALTH — check EB console"
+
+      # ── 10. Push email env vars to EB (if secrets are configured) ─────────────
+      - name: Configure email in EB environment
+        if: |
+          github.event.inputs.scope != 'infra-only' &&
+          env.EMAIL_HOST_SECRET != ''
+        env:
+          EMAIL_HOST_SECRET: ${{ secrets.EMAIL_HOST }}
+        run: |
+          ACTUAL_ENV=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
+            --output text 2>/dev/null || echo "$ENV_NAME")
+
+          aws elasticbeanstalk update-environment \
+            --application-name "$APP_NAME" \
+            --environment-name "$ACTUAL_ENV" \
+            --option-settings \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=EMAIL_HOST,Value=${{ secrets.EMAIL_HOST }}" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=EMAIL_PORT,Value=${{ secrets.EMAIL_PORT }}" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=EMAIL_USE_TLS,Value=${{ secrets.EMAIL_USE_TLS }}" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=EMAIL_HOST_USER,Value=${{ secrets.EMAIL_HOST_USER }}" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=EMAIL_HOST_PASSWORD,Value=${{ secrets.EMAIL_HOST_PASSWORD }}" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=DEFAULT_FROM_EMAIL,Value=${{ secrets.DEFAULT_FROM_EMAIL }}" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=ATTENDANCE_ADMIN_EMAILS,Value=${{ secrets.ATTENDANCE_ADMIN_EMAILS }}" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=SITE_URL,Value=${{ secrets.SITE_URL }}"
+
+          echo "Email settings applied to EB — waiting for env update..."
+          aws elasticbeanstalk wait environment-updated \
+            --application-name "$APP_NAME" \
+            --environment-names "$ACTUAL_ENV"
+
+      # ── 11. Deployment summary ────────────────────────────────────────────────
+      - name: Deployment summary
+        if: always()
+        run: |
+          APP_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApplicationURL'].OutputValue" \
+            --output text 2>/dev/null || echo "Stack not found")
+
+          AURORA=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='AuroraEndpoint'].OutputValue" \
+            --output text 2>/dev/null || echo "—")
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Deployment result" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **App URL** | $APP_URL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Version** | ${VERSION_LABEL:-n/a} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Aurora endpoint** | $AURORA |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Commit** | \`${GITHUB_SHA::8}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> **One-time post-deploy step:** SSH into EB and run \`python manage.py createsuperuser\`" \
+            >> "$GITHUB_STEP_SUMMARY"

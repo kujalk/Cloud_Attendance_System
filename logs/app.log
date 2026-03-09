@@ -1,0 +1,88 @@
+[2026-03-09 10:15:22] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:15:31] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:15:32] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:15:36] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:15:37] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:15:40] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:15:41] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:15:47] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:15:49] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:15:53] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:15:54] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:15:58] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:15:59] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:16:03] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:16:04] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:16:08] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:16:09] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:16:14] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:16:15] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:16:24] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\views.py changed, reloading.
+[2026-03-09 10:16:25] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:17:10] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\signals.py changed, reloading.
+[2026-03-09 10:17:11] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:17:36] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\send_mail.py changed, reloading.
+[2026-03-09 10:17:36] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:17:48] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\send_mail.py changed, reloading.
+[2026-03-09 10:17:49] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 10:17:59] INFO     django.utils.autoreload — E:\GitHub-Pages\Cloud_Attendance_System\api_v1\urls.py changed, reloading.
+[2026-03-09 10:18:00] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 12:04:49] INFO     django.server — "GET /students/ HTTP/1.1" 200 26037
+[2026-03-09 12:04:49] INFO     django.server — "GET /static/css/style.css HTTP/1.1" 304 0
+[2026-03-09 12:04:49] INFO     django.server — "GET /static/js/main.js HTTP/1.1" 304 0
+[2026-03-09 12:05:03] INFO     django.server — "GET /attendance/ HTTP/1.1" 200 10196
+[2026-03-09 12:05:06] INFO     django.server — "GET /students/ HTTP/1.1" 200 26037
+[2026-03-09 12:05:09] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/edit/ HTTP/1.1" 200 9047
+[2026-03-09 12:05:16] INFO     django.server — "POST /logout/ HTTP/1.1" 302 0
+[2026-03-09 12:05:16] INFO     django.server — "GET /accounts/login/ HTTP/1.1" 200 5604
+[2026-03-09 12:05:22] INFO     django.server — "POST /accounts/login/ HTTP/1.1" 302 0
+[2026-03-09 12:05:22] INFO     django.server — "GET /dashboard/ HTTP/1.1" 302 0
+[2026-03-09 12:05:22] INFO     django.server — "GET /dashboard/admin/ HTTP/1.1" 200 14733
+[2026-03-09 12:05:28] INFO     django.server — "GET /students/ HTTP/1.1" 200 26037
+[2026-03-09 12:05:36] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9239
+[2026-03-09 12:05:38] INFO     api_v1.views — EMAIL_RESEND_REQUESTED | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=rajkamal@maildrop.cc by=admin
+[2026-03-09 12:05:42] INFO     api_v1.views — EMAIL_RESEND_OK | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=rajkamal@maildrop.cc
+[2026-03-09 12:05:42] INFO     django.server — "POST /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/resend-email/ HTTP/1.1" 302 0
+[2026-03-09 12:05:42] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9815
+[2026-03-09 12:06:15] INFO     django.server — "GET /students/ HTTP/1.1" 200 26037
+[2026-03-09 12:06:18] INFO     django.server — "GET /students/f51913dc-bead-489a-9a63-99c625acb41b/ HTTP/1.1" 200 9597
+[2026-03-09 12:07:51] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 12:07:58] INFO     django.server — "POST /logout/ HTTP/1.1" 302 0
+[2026-03-09 12:07:58] INFO     django.server — "GET /accounts/login/ HTTP/1.1" 200 5604
+[2026-03-09 12:08:04] INFO     django.server — "POST /accounts/login/ HTTP/1.1" 302 0
+[2026-03-09 12:08:04] INFO     django.server — "GET /dashboard/ HTTP/1.1" 302 0
+[2026-03-09 12:08:04] INFO     django.server — "GET /dashboard/admin/ HTTP/1.1" 200 14733
+[2026-03-09 12:08:06] INFO     django.server — "GET /students/ HTTP/1.1" 200 26037
+[2026-03-09 12:08:10] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9239
+[2026-03-09 12:08:11] INFO     api_v1.views — EMAIL_RESEND_REQUESTED | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=rajkamal@maildrop.cc by=admin
+[2026-03-09 12:08:14] ERROR    api_v1.views — EMAIL_RESEND_FAILED | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=rajkamal@maildrop.cc
+[2026-03-09 12:08:14] INFO     django.server — "POST /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/resend-email/ HTTP/1.1" 302 0
+[2026-03-09 12:08:14] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9853
+[2026-03-09 12:08:45] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 12:08:58] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9239
+[2026-03-09 12:09:00] INFO     api_v1.views — EMAIL_RESEND_REQUESTED | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=rajkamal@maildrop.cc by=admin
+[2026-03-09 12:09:03] ERROR    api_v1.views — EMAIL_RESEND_FAILED | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=rajkamal@maildrop.cc
+[2026-03-09 12:09:03] INFO     django.server — "POST /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/resend-email/ HTTP/1.1" 302 0
+[2026-03-09 12:09:03] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9853
+[2026-03-09 12:09:53] INFO     django.utils.autoreload — Watching for file changes with StatReloader
+[2026-03-09 12:09:55] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9239
+[2026-03-09 12:09:56] INFO     api_v1.views — EMAIL_RESEND_REQUESTED | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=rajkamal@maildrop.cc by=admin
+[2026-03-09 12:10:00] INFO     api_v1.views — EMAIL_RESEND_OK | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=rajkamal@maildrop.cc
+[2026-03-09 12:10:00] INFO     django.server — "POST /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/resend-email/ HTTP/1.1" 302 0
+[2026-03-09 12:10:00] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9815
+[2026-03-09 12:11:00] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/edit/ HTTP/1.1" 200 9047
+[2026-03-09 12:11:11] INFO     django.server — "POST /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/edit/ HTTP/1.1" 200 9182
+[2026-03-09 12:11:15] INFO     django.server — "GET /students/ HTTP/1.1" 200 26037
+[2026-03-09 12:11:19] INFO     django.server — "GET /students/2743579f-4f77-4dd2-8d45-aea729e33a21/ HTTP/1.1" 200 9232
+[2026-03-09 12:11:20] INFO     api_v1.views — EMAIL_RESEND_REQUESTED | id=2743579f-4f77-4dd2-8d45-aea729e33a21 email=jehores467@7novels.com by=admin
+[2026-03-09 12:11:24] INFO     api_v1.views — EMAIL_RESEND_OK | id=2743579f-4f77-4dd2-8d45-aea729e33a21 email=jehores467@7novels.com
+[2026-03-09 12:11:24] INFO     django.server — "POST /students/2743579f-4f77-4dd2-8d45-aea729e33a21/resend-email/ HTTP/1.1" 302 0
+[2026-03-09 12:11:24] INFO     django.server — "GET /students/2743579f-4f77-4dd2-8d45-aea729e33a21/ HTTP/1.1" 200 9810
+[2026-03-09 12:12:20] INFO     django.server — "GET /students/2743579f-4f77-4dd2-8d45-aea729e33a21/ HTTP/1.1" 200 9232
+[2026-03-09 12:13:34] INFO     api_v1.views — STUDENT_UPDATED | id=253f2a29-60f0-497e-aa62-2f49a1fabdca name=raj kamal by=admin
+[2026-03-09 12:13:34] INFO     django.server — "POST /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/edit/ HTTP/1.1" 302 0
+[2026-03-09 12:13:34] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9792
+[2026-03-09 12:13:39] INFO     api_v1.views — EMAIL_RESEND_REQUESTED | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=vikraj@yopmail.com by=admin
+[2026-03-09 12:13:43] INFO     api_v1.views — EMAIL_RESEND_OK | id=253f2a29-60f0-497e-aa62-2f49a1fabdca email=vikraj@yopmail.com
+[2026-03-09 12:13:43] INFO     django.server — "POST /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/resend-email/ HTTP/1.1" 302 0
+[2026-03-09 12:13:43] INFO     django.server — "GET /students/253f2a29-60f0-497e-aa62-2f49a1fabdca/ HTTP/1.1" 200 9809

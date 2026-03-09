@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Deactivate Student{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'student_list' %}">Students</a></li>
+  <li class="breadcrumb-item active">Deactivate</li>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:480px;margin:0 auto;" class="fade-in">
+  <div class="card" style="border-color:rgba(239,68,68,.3)">
+    <div class="card-body" style="text-align:center;padding:2.5rem 2rem">
+      <div style="width:64px;height:64px;background:rgba(239,68,68,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:1.5rem;color:#f87171">
+        <i class="fas fa-user-slash"></i>
+      </div>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:0 0 .4rem">Deactivate Student?</h2>
+      <p style="color:var(--text-muted);font-size:.875rem;margin-bottom:1.5rem">
+        You are about to deactivate <strong style="color:var(--text-primary)">{{ student.full_name }}</strong>.
+        Their data will be preserved but they won't appear in active lists.
+      </p>
+      <form method="post" style="display:flex;gap:.75rem;justify-content:center">
+        {% csrf_token %}
+        <a href="{% url 'student_list' %}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-danger"><i class="fas fa-user-slash"></i> Deactivate</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

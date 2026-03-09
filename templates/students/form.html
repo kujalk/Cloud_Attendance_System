@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Student{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'student_list' %}">Students</a></li>
+  <li class="breadcrumb-item active">{{ action }} Student</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in">
+  <h1 class="page-title">{{ action }} Student</h1>
+  <p class="page-subtitle">{% if student %}Editing {{ student.full_name }}{% else %}Create a new student record{% endif %}</p>
+</div>
+
+<div style="max-width:700px;" class="fade-in-delay-1">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-user-graduate" style="color:var(--accent);margin-right:.5rem"></i>Student Information</h3>
+    </div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="form-group">
+            <label class="form-label">First Name *</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<div style="color:var(--danger);font-size:.78rem;margin-top:.25rem">{{ form.first_name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name *</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<div style="color:var(--danger);font-size:.78rem;margin-top:.25rem">{{ form.last_name.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="form-group">
+            <label class="form-label">Email *</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div style="color:var(--danger);font-size:.78rem;margin-top:.25rem">{{ form.email.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mobile No.</label>
+            {{ form.mobile_no }}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            {{ form.department }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Roll Number</label>
+            {{ form.roll_number }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Address</label>
+          {{ form.address }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Profile Photo</label>
+          {{ form.profile_photo }}
+          {% if student and student.profile_photo %}
+          <div style="margin-top:.5rem"><img src="{{ student.profile_photo.url }}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--border)"></div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            {{ form.is_active }}
+            <label class="form-label" style="margin:0;cursor:pointer">Active student</label>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="display:flex;gap:.75rem;justify-content:flex-end">
+          <a href="{% url 'student_list' %}" class="btn btn-outline">Cancel</a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i>
+            {% if student %}Save Changes{% else %}Create Student{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if not student %}
+  <div class="card" style="margin-top:1rem;border-color:rgba(99,102,241,.2);background:rgba(99,102,241,.05)">
+    <div class="card-body" style="padding:.85rem 1.25rem">
+      <div style="display:flex;gap:.6rem;align-items:flex-start">
+        <i class="fas fa-circle-info" style="color:var(--accent);margin-top:.1rem"></i>
+        <div>
+          <div class="fw-600 fs-sm">Automatic account creation</div>
+          <p class="fs-xs text-muted" style="margin:.2rem 0 0">A student login account will be created automatically with a temporary password. The student can change it after first login.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

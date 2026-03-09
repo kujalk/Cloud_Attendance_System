@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Reports</li>{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in">
+  <h1 class="page-title">Attendance Reports</h1>
+  <p class="page-subtitle">Generate per-subject attendance summaries</p>
+</div>
+
+<!-- Filter -->
+<div class="card fade-in-delay-1" style="margin-bottom:1rem">
+  <div class="card-body">
+    <form method="get" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:200px">
+        <label class="form-label">Subject *</label>
+        <select name="subject" class="form-select">
+          <option value="">-- Select Subject --</option>
+          {% for s in subjects %}
+          <option value="{{ s.subject_code }}" {% if selected_subject and selected_subject.subject_code == s.subject_code %}selected{% endif %}>{{ s.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="min-width:160px">
+        <label class="form-label">From date</label>
+        <input type="date" name="date_from" value="{{ date_from|default:'' }}" class="form-control" />
+      </div>
+      <div style="min-width:160px">
+        <label class="form-label">To date</label>
+        <input type="date" name="date_to" value="{{ date_to|default:'' }}" class="form-control" />
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-chart-bar"></i> Generate</button>
+    </form>
+  </div>
+</div>
+
+{% if selected_subject %}
+<div class="card fade-in-delay-2">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">{{ selected_subject.title }}</h3>
+      <div class="fs-xs text-muted">
+        {% if date_from %}{{ date_from }} — {% endif %}{% if date_to %}{{ date_to }}{% else %}Present{% endif %}
+      </div>
+    </div>
+    <span class="badge badge-active">{{ report_data|length }} students</span>
+  </div>
+
+  {% if report_data %}
+  <!-- Summary bar -->
+  {% with total_records=report_data|length %}
+  <div style="display:flex;gap:1.5rem;padding:1rem 1.25rem;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);flex-wrap:wrap">
+    {% for r in report_data %}{% endfor %}
+    <div style="font-size:.8rem;color:var(--text-muted)">
+      <i class="fas fa-users" style="color:var(--accent);margin-right:.35rem"></i>{{ report_data|length }} students total
+    </div>
+  </div>
+  {% endwith %}
+
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Student</th>
+          <th>Present</th>
+          <th>Absent</th>
+          <th>Late</th>
+          <th>Total</th>
+          <th>Attendance %</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in report_data %}
+        <tr>
+          <td class="text-muted fs-xs">{{ forloop.counter }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.6rem">
+              <div class="avatar sm">{{ r.student__first_name|slice:":1" }}{{ r.student__last_name|slice:":1" }}</div>
+              <a href="{% url 'student_detail' r.student__student_id %}" style="color:var(--text-primary);font-weight:500;font-size:.875rem;text-decoration:none">{{ r.student__first_name }} {{ r.student__last_name }}</a>
+            </div>
+          </td>
+          <td class="text-success fw-600">{{ r.present }}</td>
+          <td class="text-danger fw-600">{{ r.absent }}</td>
+          <td class="text-warning fw-600">{{ r.late }}</td>
+          <td class="text-muted">{{ r.total }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.65rem">
+              <div class="progress-bar-wrap" style="flex:1;min-width:80px">
+                <div class="progress-bar-fill {% if r.pct >= 75 %}success{% elif r.pct >= 50 %}warning{% else %}danger{% endif %}"
+                     style="width:{{ r.pct }}%"></div>
+              </div>
+              <span class="fw-700 fs-sm {% if r.pct >= 75 %}text-success{% elif r.pct >= 50 %}text-warning{% else %}text-danger{% endif %}">{{ r.pct }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No attendance data for this subject in the selected range.</p></div>
+  {% endif %}
+</div>
+{% else %}
+<div class="card fade-in-delay-2">
+  <div class="empty-state" style="padding:4rem 1rem">
+    <i class="fas fa-file-chart-column" style="color:var(--accent)"></i>
+    <p style="font-size:1rem;font-weight:500;color:var(--text-secondary)">Select a subject to generate a report</p>
+    <p class="fs-sm">Use the filter above to choose a subject and optional date range.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

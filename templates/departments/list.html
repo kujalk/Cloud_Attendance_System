@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Departments</li>{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-center justify-between flex-wrap gap-3 fade-in">
+  <div>
+    <h1 class="page-title">Departments</h1>
+    <p class="page-subtitle">Manage academic departments</p>
+  </div>
+  <a href="{% url 'department_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Department</a>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem" class="fade-in-delay-1">
+  {% for d in departments %}
+  <div class="card" style="transition:all .2s ease">
+    <div class="card-body">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+        <div>
+          <div style="display:inline-block;background:rgba(99,102,241,.15);color:var(--accent);border-radius:6px;padding:.2rem .6rem;font-size:.72rem;font-weight:700;letter-spacing:.06em;margin-bottom:.5rem">{{ d.code }}</div>
+          <h3 style="font-size:1rem;font-weight:600;margin:0 0 .35rem">{{ d.name }}</h3>
+          {% if d.description %}<p class="fs-xs text-muted">{{ d.description|truncatechars:80 }}</p>{% endif %}
+        </div>
+        <a href="{% url 'department_edit' d.id %}" class="btn btn-outline btn-icon btn-sm" title="Edit"><i class="fas fa-pen"></i></a>
+      </div>
+      <div class="divider" style="margin:.85rem 0"></div>
+      <div style="display:flex;gap:1.5rem">
+        <div style="text-align:center">
+          <div class="fw-700" style="font-size:1.1rem;color:var(--accent)">{{ d.student_count }}</div>
+          <div class="fs-xs text-muted">Students</div>
+        </div>
+        <div style="text-align:center">
+          <div class="fw-700" style="font-size:1.1rem;color:var(--purple)">{{ d.subject_count }}</div>
+          <div class="fs-xs text-muted">Subjects</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card" style="grid-column:1/-1">
+    <div class="empty-state"><i class="fas fa-building"></i><p>No departments yet.</p><a href="{% url 'department_create' %}" class="btn btn-primary mt-3">Add first department</a></div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

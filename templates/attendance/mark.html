@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Mark Attendance{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'attendance_list' %}">Attendance</a></li>
+  <li class="breadcrumb-item active">Mark Attendance</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-center justify-between flex-wrap gap-3 fade-in">
+  <div>
+    <h1 class="page-title">Mark Attendance</h1>
+    <p class="page-subtitle">Select a subject and date to mark student attendance</p>
+  </div>
+  <a href="{% url 'attendance_list' %}" class="btn btn-outline"><i class="fas fa-list"></i> View Records</a>
+</div>
+
+<!-- Subject + date selector -->
+<div class="card fade-in-delay-1" style="margin-bottom:1rem">
+  <div class="card-body">
+    <form method="get" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:200px">
+        <label class="form-label">Subject</label>
+        <select name="subject" id="subjectFilter" class="form-select">
+          <option value="">-- Select Subject --</option>
+          {% for s in subjects %}
+          <option value="{{ s.subject_code }}" {% if selected_subject and selected_subject.subject_code == s.subject_code %}selected{% endif %}>
+            {{ s.title }} {% if s.department %}({{ s.department.code }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="min-width:180px">
+        <label class="form-label">Date</label>
+        <input type="date" name="date" id="dateFilter" value="{{ selected_date }}" class="form-control" />
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Load Students</button>
+    </form>
+  </div>
+</div>
+
+{% if selected_subject and students %}
+<form method="post" action="{% url 'mark_attendance' %}?subject={{ selected_subject.subject_code }}&date={{ selected_date }}">
+  {% csrf_token %}
+  <input type="hidden" name="subject" value="{{ selected_subject.subject_code }}" />
+  <input type="hidden" name="date" value="{{ selected_date }}" />
+
+  <div class="card fade-in-delay-2">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">
+          <i class="fas fa-book-open" style="color:var(--accent);margin-right:.5rem"></i>
+          {{ selected_subject.title }}
+          <span class="fs-xs text-muted" style="font-weight:400;margin-left:.5rem">{{ selected_date }}</span>
+        </h3>
+        <div class="fs-xs text-muted">{{ students|length }} students</div>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button type="button" class="btn btn-success btn-sm" onclick="markAll('Present')">
+          <i class="fas fa-check-double"></i> All Present
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="markAll('Absent')">
+          <i class="fas fa-times"></i> All Absent
+        </button>
+      </div>
+    </div>
+
+    <!-- Student rows -->
+    {% for student in students %}
+    <input type="hidden" name="student_ids" value="{{ student.student_id }}" />
+    <div class="student-row">
+      <!-- Avatar + name -->
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <div class="avatar sm">{{ student.first_name|slice:":1" }}{{ student.last_name|slice:":1" }}</div>
+        <div>
+          <div class="fw-600 fs-sm">{{ student.full_name }}</div>
+          <div class="fs-xs text-muted">{{ student.roll_number|default:student.student_id|slice:":8" }}</div>
+        </div>
+      </div>
+
+      <!-- Remarks -->
+      <div style="padding:0 1rem">
+        <input type="text" name="remarks_{{ student.student_id }}" class="form-control" style="height:34px;font-size:.8rem" placeholder="Optional remarks…" />
+      </div>
+
+      <!-- Status buttons -->
+      <div class="status-group">
+        <input type="hidden" name="status_{{ student.student_id }}" value="{{ existing_map|default:'{}'|default:'Present' }}" />
+        <div style="display:flex;gap:4px">
+          {% with cur=existing_map|default:'{}' %}
+          <button type="button" class="s-btn {% if not existing_map or existing_map|default:'Present' == 'Present' %}active-present{% endif %}" data-value="Present">P</button>
+          <button type="button" class="s-btn {% if existing_map and existing_map == 'Absent' %}active-absent{% endif %}" data-value="Absent">A</button>
+          <button type="button" class="s-btn {% if existing_map and existing_map == 'Late' %}active-late{% endif %}" data-value="Late">L</button>
+          <button type="button" class="s-btn {% if existing_map and existing_map == 'Excused' %}active-excused{% endif %}" data-value="Excused">E</button>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div style="padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:.75rem">
+      <a href="{% url 'attendance_list' %}" class="btn btn-outline">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i> Save Attendance
+      </button>
+    </div>
+  </div>
+</form>
+
+{% elif selected_subject %}
+<div class="card fade-in-delay-2">
+  <div class="empty-state">
+    <i class="fas fa-users"></i>
+    <p>No students enrolled in {{ selected_subject.title }}.</p>
+    <a href="{% url 'student_list' %}" class="btn btn-outline mt-3">Manage Students</a>
+  </div>
+</div>
+{% else %}
+<div class="card fade-in-delay-2">
+  <div class="empty-state">
+    <i class="fas fa-hand-pointer"></i>
+    <p>Select a subject and date above to start marking attendance.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialise status buttons with actual existing data
+document.addEventListener('DOMContentLoaded', () => {
+  const existingMap = {{ existing_map|safe|default:'{}' }};
+
+  document.querySelectorAll('.status-group').forEach(group => {
+    const hiddenInput = group.querySelector('input[type="hidden"]');
+    const buttons = group.querySelectorAll('.s-btn');
+    const studentId = hiddenInput.name.replace('status_', '');
+    const cur = existingMap[studentId] || 'Present';
+
+    hiddenInput.value = cur;
+    buttons.forEach(b => {
+      b.classList.remove('active-present','active-absent','active-late','active-excused');
+      if (b.dataset.value === cur) b.classList.add(`active-${cur.toLowerCase()}`);
+    });
+  });
+});
+</script>
+{% endblock %}

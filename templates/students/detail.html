@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ student.full_name }}{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'student_list' %}">Students</a></li>
+  <li class="breadcrumb-item active">{{ student.full_name }}</li>
+{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:320px 1fr;gap:1rem;align-items:start;" class="fade-in">
+
+  <!-- Profile card -->
+  <div>
+    <div class="card" style="margin-bottom:1rem">
+      <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);height:80px;border-radius:12px 12px 0 0;position:relative;">
+        <div class="avatar xl" style="position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);border:3px solid var(--bg-elevated)">
+          {{ student.first_name|slice:":1" }}{{ student.last_name|slice:":1" }}
+        </div>
+      </div>
+      <div class="card-body" style="text-align:center;padding-top:2.5rem">
+        <h2 style="font-size:1.15rem;font-weight:700;margin:0">{{ student.full_name }}</h2>
+        {% if student.roll_number %}
+        <div class="fs-xs text-muted" style="margin-top:.2rem">{{ student.roll_number }}</div>
+        {% endif %}
+        <span class="badge {% if student.is_active %}badge-active{% else %}badge-inactive{% endif %}" style="margin-top:.5rem">
+          {% if student.is_active %}Active{% else %}Inactive{% endif %}
+        </span>
+
+        <div class="divider"></div>
+
+        <!-- Attendance meter -->
+        <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:1rem;">
+          <div style="font-size:2rem;font-weight:800;{% if attendance_pct >= 75 %}color:#4ade80{% elif attendance_pct >= 50 %}color:#fbbf24{% else %}color:#f87171{% endif %}">{{ attendance_pct }}%</div>
+          <div class="fs-xs text-muted">Overall Attendance</div>
+          <div class="progress-bar-wrap" style="margin-top:.5rem">
+            <div class="progress-bar-fill {% if attendance_pct >= 75 %}success{% elif attendance_pct >= 50 %}warning{% else %}danger{% endif %}"
+                 style="width:{{ attendance_pct }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Info</h3></div>
+      <div class="card-body">
+        <div class="detail-item">
+          <span class="detail-label">Email</span>
+          <span class="detail-value">{{ student.email }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Mobile</span>
+          <span class="detail-value">{{ student.mobile_no|default:"—" }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Department</span>
+          <span class="detail-value">{{ student.department.name|default:"—" }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Address</span>
+          <span class="detail-value">{{ student.address|default:"—" }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Enrolled</span>
+          <span class="detail-value fs-xs">{{ student.created_at|date:"M j, Y" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.5rem;margin-top:.75rem">
+      <a href="{% url 'student_edit' student.student_id %}" class="btn btn-outline" style="flex:1"><i class="fas fa-pen"></i> Edit</a>
+      <a href="{% url 'student_delete' student.student_id %}" class="btn btn-icon" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)"><i class="fas fa-user-slash"></i></a>
+    </div>
+
+    <!-- Resend welcome email -->
+    {% if student.email %}
+    <form method="post" action="{% url 'resend_welcome_email' student.student_id %}" style="margin-top:.5rem">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline" style="width:100%;font-size:.82rem;color:#8b5cf6;border-color:rgba(139,92,246,.4)"
+              title="Resend login credentials to {{ student.email }}">
+        <i class="fas fa-paper-plane" style="margin-right:.4rem"></i>Resend Welcome Email
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Attendance table -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-clipboard-list" style="color:var(--accent);margin-right:.5rem"></i>Attendance Records</h3>
+      <span class="badge badge-active">{{ attendance_records.count }} records</span>
+    </div>
+    <div class="table-container">
+      {% if attendance_records %}
+      <table class="table">
+        <thead><tr><th>Date</th><th>Subject</th><th>Status</th><th>Remarks</th></tr></thead>
+        <tbody>
+          {% for r in attendance_records %}
+          <tr>
+            <td class="fw-600 fs-sm">{{ r.lecture_date }}</td>
+            <td class="fs-sm text-muted">{{ r.subject.title|default:"—" }}</td>
+            <td><span class="badge badge-{{ r.status|lower }}">{{ r.status }}</span></td>
+            <td class="fs-xs text-muted">{{ r.remarks|default:"" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-clipboard"></i><p>No attendance records yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

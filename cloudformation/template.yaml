@@ -1,0 +1,410 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Cloud Attendance System — Django 5 on Elastic Beanstalk (Python 3.12) +
+  Aurora Serverless v2 (MySQL-compatible).
+  Creates a dedicated VPC, public/private subnets, security groups, Aurora
+  Serverless v2 cluster, IAM roles, and an Elastic Beanstalk environment
+  wired together end-to-end.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Parameters
+# ──────────────────────────────────────────────────────────────────────────────
+Parameters:
+
+  ApplicationName:
+    Type: String
+    Default: CloudAttendanceSystem
+    Description: Name used as a prefix for all resources.
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9-]*'
+
+  EnvironmentName:
+    Type: String
+    Default: production
+    AllowedValues: [production, staging, development]
+    Description: Deployment stage label.
+
+  SolutionStackName:
+    Type: String
+    Default: '64bit Amazon Linux 2023 v4.3.0 running Python 3.12'
+    Description: >
+      Elastic Beanstalk platform version. Run
+      `aws elasticbeanstalk list-available-solution-stacks --query "SolutionStacks[?contains(@,'Python 3.12')]"`
+      to find the latest.
+
+  EC2InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t3.medium, t3.large]
+    Description: EC2 instance type for the EB environment.
+
+  DBName:
+    Type: String
+    Default: attendance_db
+    MinLength: 1
+    MaxLength: 64
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9_]*'
+
+  DBUsername:
+    Type: String
+    Default: attendanceadmin
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: Must start with a letter; alphanumeric only.
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 41
+    Description: Aurora master password (min 8 characters).
+
+  AuroraMinCapacity:
+    Type: Number
+    Default: 0.5
+    Description: >
+      Minimum Aurora Serverless v2 capacity in ACUs (0.5 = ~1 GB RAM).
+      Set to 0 to pause when idle (adds ~30 s cold start).
+    AllowedValues: [0.5, 1, 2, 4, 8]
+
+  AuroraMaxCapacity:
+    Type: Number
+    Default: 4
+    Description: Maximum Aurora Serverless v2 capacity in ACUs.
+    AllowedValues: [1, 2, 4, 8, 16, 32, 64]
+
+  DjangoSecretKey:
+    Type: String
+    NoEcho: true
+    MinLength: 20
+    Description: >
+      Django SECRET_KEY. Generate with:
+      python -c "import secrets; print(secrets.token_urlsafe(50))"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Metadata — parameter grouping in the console
+# ──────────────────────────────────────────────────────────────────────────────
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: Application }
+        Parameters: [ApplicationName, EnvironmentName, SolutionStackName]
+      - Label: { default: Compute }
+        Parameters: [EC2InstanceType]
+      - Label: { default: Database (Aurora Serverless v2) }
+        Parameters: [DBName, DBUsername, DBPassword, AuroraMinCapacity, AuroraMaxCapacity]
+      - Label: { default: Security }
+        Parameters: [DjangoSecretKey]
+    ParameterLabels:
+      ApplicationName:    { default: Application Name }
+      EnvironmentName:    { default: Environment Stage }
+      SolutionStackName:  { default: EB Platform Version }
+      EC2InstanceType:    { default: EC2 Instance Type }
+      DBName:             { default: Database Name }
+      DBUsername:         { default: DB Master Username }
+      DBPassword:         { default: DB Master Password }
+      AuroraMinCapacity:  { default: Aurora Min ACUs }
+      AuroraMaxCapacity:  { default: Aurora Max ACUs }
+      DjangoSecretKey:    { default: Django SECRET_KEY }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Resources
+# ──────────────────────────────────────────────────────────────────────────────
+Resources:
+
+  # ── VPC ────────────────────────────────────────────────────────────────────
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-vpc' }
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-igw' }
+
+  IGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public subnets — Elastic Beanstalk EC2 instances
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-public-1' }
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-public-2' }
+
+  # Private subnets — Aurora cluster (no public IP)
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.11.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-private-1' }
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.12.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-private-2' }
+
+  # Route table for public subnets
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-public-rt' }
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IGWAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RTA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RTA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # ── Security Groups ─────────────────────────────────────────────────────────
+
+  EBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP/HTTPS inbound to EB instances
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80,  ToPort: 80,  CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-eb-sg' }
+
+  AuroraSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: MySQL access from EB instances only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref EBSecurityGroup
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-aurora-sg' }
+
+  # ── Aurora Serverless v2 ────────────────────────────────────────────────────
+
+  AuroraSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub '${ApplicationName} private subnet group'
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-aurora-subnet-group' }
+
+  AuroraCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBClusterIdentifier: !Sub '${ApplicationName}-cluster'
+      DatabaseName: !Ref DBName
+      Engine: aurora-mysql
+      EngineVersion: '8.0.mysql_aurora.3.05.2'
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: !Ref AuroraMinCapacity
+        MaxCapacity: !Ref AuroraMaxCapacity
+      VpcSecurityGroupIds:
+        - !Ref AuroraSecurityGroup
+      DBSubnetGroupName: !Ref AuroraSubnetGroup
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: '02:00-03:00'
+      PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+      StorageEncrypted: true
+      DeletionProtection: false
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-aurora-cluster' }
+
+  # Writer instance — db.serverless class enables Serverless v2 scaling
+  AuroraWriterInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub '${ApplicationName}-writer'
+      DBClusterIdentifier: !Ref AuroraCluster
+      DBInstanceClass: db.serverless
+      Engine: aurora-mysql
+      PubliclyAccessible: false
+      Tags:
+        - { Key: Name, Value: !Sub '${ApplicationName}-aurora-writer' }
+
+  # ── IAM Roles ───────────────────────────────────────────────────────────────
+
+  EBInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-eb-instance-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier
+
+  EBInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${ApplicationName}-eb-instance-profile'
+      Roles:
+        - !Ref EBInstanceRole
+
+  EBServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-eb-service-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: elasticbeanstalk.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                sts:ExternalId: elasticbeanstalk
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkManagedUpdatesCustomerRolePolicy
+
+  # ── Elastic Beanstalk ────────────────────────────────────────────────────────
+
+  EBApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: !Ref ApplicationName
+      Description: !Sub 'Cloud Attendance System (${EnvironmentName})'
+
+  EBEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    DependsOn: AuroraWriterInstance
+    Properties:
+      ApplicationName: !Ref EBApplication
+      EnvironmentName: !Sub '${ApplicationName}-${EnvironmentName}'
+      SolutionStackName: !Ref SolutionStackName
+      OptionSettings:
+
+        # ── Instance ──
+        - { Namespace: aws:autoscaling:launchconfiguration, OptionName: IamInstanceProfile,  Value: !Ref EBInstanceProfile }
+        - { Namespace: aws:autoscaling:launchconfiguration, OptionName: InstanceType,        Value: !Ref EC2InstanceType }
+        - { Namespace: aws:autoscaling:launchconfiguration, OptionName: SecurityGroups,      Value: !Ref EBSecurityGroup }
+
+        # ── VPC placement ──
+        - { Namespace: aws:ec2:vpc, OptionName: VPCId,                   Value: !Ref VPC }
+        - { Namespace: aws:ec2:vpc, OptionName: Subnets,                  Value: !Join [',', [!Ref PublicSubnet1, !Ref PublicSubnet2]] }
+        - { Namespace: aws:ec2:vpc, OptionName: ELBSubnets,               Value: !Join [',', [!Ref PublicSubnet1, !Ref PublicSubnet2]] }
+        - { Namespace: aws:ec2:vpc, OptionName: AssociatePublicIpAddress,  Value: 'true' }
+
+        # ── Environment type & service role ──
+        - { Namespace: aws:elasticbeanstalk:environment, OptionName: EnvironmentType, Value: SingleInstance }
+        - { Namespace: aws:elasticbeanstalk:environment, OptionName: ServiceRole,     Value: !Ref EBServiceRole }
+
+        # ── Python WSGI ──
+        - { Namespace: aws:elasticbeanstalk:container:python, OptionName: WSGIPath, Value: Attendance_System.wsgi:application }
+
+        # ── Static files ──
+        - { Namespace: aws:elasticbeanstalk:environment:proxy:staticfiles, OptionName: /static, Value: staticfiles }
+
+        # ── Health reporting ──
+        - { Namespace: aws:elasticbeanstalk:healthreporting:system, OptionName: SystemType, Value: enhanced }
+
+        # ── Managed platform updates ──
+        - { Namespace: aws:elasticbeanstalk:managedactions, OptionName: ManagedActionsEnabled, Value: 'true' }
+        - { Namespace: aws:elasticbeanstalk:managedactions, OptionName: PreferredStartTime,    Value: 'Tue:09:00' }
+        - { Namespace: aws:elasticbeanstalk:managedactions:platformupdate, OptionName: UpdateLevel, Value: minor }
+
+        # ── Django environment variables ──
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: RDS_HOSTNAME, Value: !GetAtt AuroraCluster.Endpoint.Address }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: RDS_PORT,     Value: !GetAtt AuroraCluster.Endpoint.Port }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: RDS_DB_NAME,  Value: !Ref DBName }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: RDS_USERNAME, Value: !Ref DBUsername }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: RDS_PASSWORD, Value: !Ref DBPassword }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: SECRET_KEY,   Value: !Ref DjangoSecretKey }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: DEBUG,        Value: 'False' }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: ALLOWED_HOSTS, Value: !Sub '.elasticbeanstalk.com' }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Outputs
+# ──────────────────────────────────────────────────────────────────────────────
+Outputs:
+
+  ApplicationURL:
+    Description: Public URL of the Elastic Beanstalk environment
+    Value: !Sub 'http://${EBEnvironment.EndpointURL}'
+    Export:
+      Name: !Sub '${AWS::StackName}-AppURL'
+
+  AuroraEndpoint:
+    Description: Aurora cluster writer endpoint (internal — not publicly accessible)
+    Value: !GetAtt AuroraCluster.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-AuroraEndpoint'
+
+  AuroraReaderEndpoint:
+    Description: Aurora cluster reader endpoint
+    Value: !GetAtt AuroraCluster.ReadEndpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-AuroraReaderEndpoint'
+
+  EBEnvironmentName:
+    Description: Name of the Elastic Beanstalk environment
+    Value: !Ref EBEnvironment
+    Export:
+      Name: !Sub '${AWS::StackName}-EBEnv'
+
+  VPCId:
+    Description: VPC created for this deployment
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VPCId'

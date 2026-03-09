@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">My Dashboard</li>{% endblock %}
+
+{% block content %}
+<!-- Student hero -->
+<div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:1.75rem 2rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1.5rem;" class="fade-in">
+  <div class="avatar xl" style="flex-shrink:0">
+    {{ student.first_name|slice:":1" }}{{ student.last_name|slice:":1" }}
+  </div>
+  <div style="flex:1">
+    <h2 style="font-size:1.5rem;font-weight:700;color:#fff;margin:0">{{ student.full_name }}</h2>
+    <div style="color:rgba(255,255,255,.55);font-size:.85rem;margin-top:.25rem;display:flex;flex-wrap:wrap;gap:1rem;">
+      {% if student.department %}<span><i class="fas fa-building" style="margin-right:.35rem;color:var(--accent)"></i>{{ student.department.name }}</span>{% endif %}
+      {% if student.roll_number %}<span><i class="fas fa-id-card" style="margin-right:.35rem;color:var(--purple)"></i>{{ student.roll_number }}</span>{% endif %}
+      <span><i class="fas fa-envelope" style="margin-right:.35rem;color:var(--cyan)"></i>{{ student.email }}</span>
+    </div>
+  </div>
+  <div style="text-align:center;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:1rem 1.5rem;">
+    <div style="font-size:2.25rem;font-weight:800;{% if pct >= 75 %}color:#4ade80{% elif pct >= 50 %}color:#fbbf24{% else %}color:#f87171{% endif %}">{{ pct }}%</div>
+    <div style="font-size:.72rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Overall Attendance</div>
+  </div>
+</div>
+
+<!-- Mini stats -->
+<div class="stats-grid fade-in-delay-1" style="margin-bottom:1.5rem">
+  <div class="stat-card">
+    <div class="stat-icon emerald"><i class="fas fa-check"></i></div>
+    <div class="stat-content">
+      <div class="stat-value">{{ present }}</div>
+      <div class="stat-label">Classes Present</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon rose"><i class="fas fa-times"></i></div>
+    <div class="stat-content">
+      <div class="stat-value">{{ absent }}</div>
+      <div class="stat-label">Classes Absent</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber"><i class="fas fa-clock"></i></div>
+    <div class="stat-content">
+      <div class="stat-value">{{ late }}</div>
+      <div class="stat-label">Late Arrivals</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon indigo"><i class="fas fa-calendar-days"></i></div>
+    <div class="stat-content">
+      <div class="stat-value">{{ total }}</div>
+      <div class="stat-label">Total Classes</div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:1rem;" class="fade-in-delay-2">
+  <!-- Subject breakdown -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-book-open" style="color:var(--accent);margin-right:.5rem"></i>Attendance by Subject</h3>
+    </div>
+    <div class="card-body">
+      {% if subject_stats %}
+        {% for s in subject_stats %}
+        <div style="margin-bottom:1.1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+            <span style="font-size:.85rem;font-weight:500">{{ s.subject__title|default:"Unknown" }}</span>
+            <span class="fw-600 fs-sm {% if s.pct >= 75 %}text-success{% elif s.pct >= 50 %}text-warning{% else %}text-danger{% endif %}">{{ s.pct }}%</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill {% if s.pct >= 75 %}success{% elif s.pct >= 50 %}warning{% else %}danger{% endif %}"
+                 style="width:{{ s.pct }}%"></div>
+          </div>
+          <div style="display:flex;gap:1rem;margin-top:.3rem">
+            <span class="fs-xs text-success">{{ s.present }} present</span>
+            <span class="fs-xs text-danger">{{ s.absent }} absent</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state"><i class="fas fa-book-open"></i><p>No subject data yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent attendance -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-clock-rotate-left" style="color:var(--cyan);margin-right:.5rem"></i>Recent Records</h3>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if recent %}
+        <table class="table">
+          <thead><tr><th>Date</th><th>Subject</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for r in recent %}
+            <tr>
+              <td class="fs-sm">{{ r.lecture_date }}</td>
+              <td class="fs-sm text-muted">{{ r.subject.title|default:"—" }}</td>
+              <td><span class="badge badge-{{ r.status|lower }}">{{ r.status }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state"><i class="fas fa-clipboard"></i><p>No records yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

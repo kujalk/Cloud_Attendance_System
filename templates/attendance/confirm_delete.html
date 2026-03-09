@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Delete Record{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'attendance_list' %}">Attendance</a></li><li class="breadcrumb-item active">Delete</li>{% endblock %}
+
+{% block content %}
+<div style="max-width:460px;margin:0 auto" class="fade-in">
+  <div class="card" style="border-color:rgba(239,68,68,.3)">
+    <div class="card-body" style="text-align:center;padding:2.5rem 2rem">
+      <div style="width:64px;height:64px;background:rgba(239,68,68,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:1.5rem;color:#f87171"><i class="fas fa-trash"></i></div>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:0 0 .4rem">Delete this record?</h2>
+      <p style="color:var(--text-muted);font-size:.875rem;margin-bottom:1.5rem">
+        <strong style="color:var(--text-primary)">{{ record.student.full_name }}</strong> &mdash;
+        {{ record.subject.title|default:"Unknown" }} &mdash;
+        {{ record.lecture_date }} &mdash;
+        <span class="badge badge-{{ record.status|lower }}">{{ record.status }}</span>
+      </p>
+      <form method="post" style="display:flex;gap:.75rem;justify-content:center">
+        {% csrf_token %}
+        <a href="{% url 'attendance_list' %}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

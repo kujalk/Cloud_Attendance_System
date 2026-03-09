@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item active">Students</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-center justify-between flex-wrap gap-3 fade-in">
+  <div>
+    <h1 class="page-title">Students</h1>
+    <p class="page-subtitle">Manage all enrolled students</p>
+  </div>
+  <a href="{% url 'student_create' %}" class="btn btn-primary">
+    <i class="fas fa-user-plus"></i> Add Student
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card fade-in-delay-1" style="margin-bottom:1rem">
+  <div class="card-body" style="padding:.85rem 1.25rem">
+    <form method="get" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center">
+      <div class="search-bar" style="flex:1;min-width:200px">
+        <i class="fas fa-search"></i>
+        <input type="text" name="q" value="{{ q }}" class="form-control"
+               placeholder="Search by name, email, roll no…" />
+      </div>
+      <select name="dept" class="form-select" style="width:auto">
+        <option value="">All Departments</option>
+        {% for d in departments %}
+        <option value="{{ d.id }}" {% if dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Filter</button>
+      {% if q or dept %}<a href="{% url 'student_list' %}" class="btn btn-outline"><i class="fas fa-xmark"></i></a>{% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card fade-in-delay-2">
+  <div class="card-header">
+    <span class="card-title">{{ students|length }} student{{ students|length|pluralize }}</span>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <div class="search-bar" style="max-width:220px">
+        <i class="fas fa-search"></i>
+        <input type="text" id="tableSearch" class="form-control" placeholder="Quick search…" />
+      </div>
+    </div>
+  </div>
+  <div class="table-container">
+    {% if students %}
+    <table class="table searchable-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Roll No.</th>
+          <th>Email</th>
+          <th>Mobile</th>
+          <th>Department</th>
+          <th>Attendance</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <div class="avatar sm">{{ s.first_name|slice:":1" }}{{ s.last_name|slice:":1" }}</div>
+              <div>
+                <div class="fw-600" style="font-size:.875rem">{{ s.full_name }}</div>
+                <div class="fs-xs text-muted">{{ s.student_id|slice:":8" }}…</div>
+              </div>
+            </div>
+          </td>
+          <td class="fs-sm text-muted">{{ s.roll_number|default:"—" }}</td>
+          <td class="fs-sm">{{ s.email }}</td>
+          <td class="fs-sm text-muted">{{ s.mobile_no }}</td>
+          <td class="fs-sm">{{ s.department.name|default:"—" }}</td>
+          <td>
+            {% with pct=s.attendance_percentage %}
+            <div style="display:flex;align-items:center;gap:.5rem;min-width:90px">
+              <div class="progress-bar-wrap" style="flex:1">
+                <div class="progress-bar-fill {% if pct >= 75 %}success{% elif pct >= 50 %}warning{% else %}danger{% endif %}"
+                     style="width:{{ pct }}%"></div>
+              </div>
+              <span class="fs-xs fw-600 {% if pct >= 75 %}text-success{% elif pct >= 50 %}text-warning{% else %}text-danger{% endif %}">{{ pct }}%</span>
+            </div>
+            {% endwith %}
+          </td>
+          <td><span class="badge {% if s.is_active %}badge-active{% else %}badge-inactive{% endif %}">{% if s.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+          <td>
+            <div style="display:flex;gap:.35rem">
+              <a href="{% url 'student_detail' s.student_id %}" class="btn btn-outline btn-icon" title="View"><i class="fas fa-eye"></i></a>
+              <a href="{% url 'student_edit' s.student_id %}" class="btn btn-outline btn-icon" title="Edit"><i class="fas fa-pen"></i></a>
+              <a href="{% url 'student_delete' s.student_id %}" class="btn btn-icon" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)" title="Deactivate"><i class="fas fa-user-slash"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-user-graduate"></i>
+      <p>No students found{% if q %} for "{{ q }}"{% endif %}.</p>
+      <a href="{% url 'student_create' %}" class="btn btn-primary mt-3">Add first student</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

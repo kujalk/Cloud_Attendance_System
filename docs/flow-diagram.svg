@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 820" font-family="Inter,Segoe UI,Arial,sans-serif">
+  <!-- Background -->
+  <rect width="920" height="820" fill="#f8fafc" rx="16"/>
+
+  <!-- Title -->
+  <text x="460" y="38" text-anchor="middle" font-size="17" font-weight="700" fill="#0f172a">CloudAttend — Student Registration &amp; Attendance Flow</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Actor headers                                           -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- Admin -->
+  <rect x="40" y="56" width="120" height="46" rx="10" fill="#6366f1"/>
+  <text x="100" y="74" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">&#128100; Admin</text>
+  <text x="100" y="90" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.75)">(Staff / Superuser)</text>
+
+  <!-- Django App -->
+  <rect x="290" y="56" width="140" height="46" rx="10" fill="#0f172a"/>
+  <text x="360" y="74" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">&#9729; Django App</text>
+  <text x="360" y="90" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.65)">(Views + Signals)</text>
+
+  <!-- Database -->
+  <rect x="560" y="56" width="120" height="46" rx="10" fill="#0891b2"/>
+  <text x="620" y="74" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">&#128451; Database</text>
+  <text x="620" y="90" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.75)">(SQLite / RDS)</text>
+
+  <!-- Student -->
+  <rect x="760" y="56" width="120" height="46" rx="10" fill="#059669"/>
+  <text x="820" y="74" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">&#127891; Student</text>
+  <text x="820" y="90" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.75)">(End User)</text>
+
+  <!-- ── Lifelines ── -->
+  <line x1="100" y1="102" x2="100" y2="800" stroke="#c7d2fe" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="360" y1="102" x2="360" y2="800" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="620" y1="102" x2="620" y2="800" stroke="#a5f3fc" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="820" y1="102" x2="820" y2="800" stroke="#6ee7b7" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 1 — Admin Login                                -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="30" y="114" width="860" height="20" rx="5" fill="#e0e7ff"/>
+  <text x="460" y="128" text-anchor="middle" font-size="11" font-weight="700" fill="#3730a3">1 — Admin Login</text>
+
+  <!-- Step 1 -->
+  <line x1="100" y1="148" x2="340" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-indigo)"/>
+  <text x="220" y="143" text-anchor="middle" font-size="10" fill="#4338ca">GET /accounts/login/</text>
+
+  <line x1="360" y1="162" x2="120" y2="162" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-indigo-r)"/>
+  <text x="220" y="157" text-anchor="middle" font-size="10" fill="#4338ca">Login page (HTML)</text>
+
+  <line x1="100" y1="180" x2="340" y2="180" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-indigo)"/>
+  <text x="220" y="175" text-anchor="middle" font-size="10" fill="#4338ca">POST credentials</text>
+
+  <line x1="360" y1="194" x2="600" y2="194" stroke="#0891b2" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+  <text x="480" y="189" text-anchor="middle" font-size="10" fill="#0e7490">Verify user + group</text>
+
+  <line x1="620" y1="208" x2="380" y2="208" stroke="#0891b2" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-cyan-r)"/>
+  <text x="480" y="203" text-anchor="middle" font-size="10" fill="#0e7490">User record + groups</text>
+
+  <line x1="360" y1="222" x2="120" y2="222" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-indigo-r)"/>
+  <text x="220" y="217" text-anchor="middle" font-size="10" fill="#4338ca">Redirect → /dashboard/</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 2 — Admin Adds Student                         -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="30" y="238" width="860" height="20" rx="5" fill="#dcfce7"/>
+  <text x="460" y="252" text-anchor="middle" font-size="11" font-weight="700" fill="#166534">2 — Admin Adds New Student</text>
+
+  <line x1="100" y1="274" x2="340" y2="274" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-indigo)"/>
+  <text x="220" y="269" text-anchor="middle" font-size="10" fill="#4338ca">POST /students/create/</text>
+
+  <!-- Signal box -->
+  <rect x="260" y="282" width="200" height="36" rx="7" fill="#fef9c3" stroke="#fbbf24" stroke-width="1"/>
+  <text x="360" y="296" text-anchor="middle" font-size="10" font-weight="600" fill="#92400e">&#9889; post_save signal fires</text>
+  <text x="360" y="310" text-anchor="middle" font-size="10" fill="#92400e">create_student_user_account()</text>
+
+  <line x1="360" y1="318" x2="600" y2="318" stroke="#0891b2" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+  <text x="480" y="313" text-anchor="middle" font-size="10" fill="#0e7490">INSERT Student row</text>
+
+  <line x1="360" y1="334" x2="600" y2="334" stroke="#0891b2" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+  <text x="480" y="329" text-anchor="middle" font-size="10" fill="#0e7490">INSERT User + add to Student group</text>
+
+  <line x1="620" y1="348" x2="380" y2="348" stroke="#0891b2" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-cyan-r)"/>
+  <text x="480" y="343" text-anchor="middle" font-size="10" fill="#0e7490">user_id returned</text>
+
+  <!-- Email box -->
+  <rect x="260" y="356" width="200" height="36" rx="7" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="360" y="370" text-anchor="middle" font-size="10" font-weight="600" fill="#5b21b6">&#9993; send_student_welcome()</text>
+  <text x="360" y="384" text-anchor="middle" font-size="10" fill="#5b21b6">SMTP → student.email</text>
+
+  <line x1="460" y1="392" x2="800" y2="392" stroke="#059669" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-green)"/>
+  <text x="640" y="387" text-anchor="middle" font-size="10" fill="#065f46">Welcome email: username + temp password</text>
+
+  <line x1="360" y1="406" x2="120" y2="406" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-indigo-r)"/>
+  <text x="220" y="401" text-anchor="middle" font-size="10" fill="#4338ca">Redirect → student list (success toast)</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 3 — Admin Marks Attendance                     -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="30" y="422" width="860" height="20" rx="5" fill="#fef9c3"/>
+  <text x="460" y="436" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">3 — Admin Marks Attendance</text>
+
+  <line x1="100" y1="456" x2="340" y2="456" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-indigo)"/>
+  <text x="220" y="451" text-anchor="middle" font-size="10" fill="#4338ca">GET /attendance/mark/?subject=&amp;date=</text>
+
+  <line x1="360" y1="470" x2="600" y2="470" stroke="#0891b2" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+  <text x="480" y="465" text-anchor="middle" font-size="10" fill="#0e7490">SELECT students for subject</text>
+
+  <line x1="620" y1="484" x2="380" y2="484" stroke="#0891b2" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-cyan-r)"/>
+  <text x="480" y="479" text-anchor="middle" font-size="10" fill="#0e7490">Student list</text>
+
+  <line x1="360" y1="498" x2="120" y2="498" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-indigo-r)"/>
+  <text x="220" y="493" text-anchor="middle" font-size="10" fill="#4338ca">Mark attendance form</text>
+
+  <line x1="100" y1="516" x2="340" y2="516" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-indigo)"/>
+  <text x="220" y="511" text-anchor="middle" font-size="10" fill="#4338ca">POST status for each student</text>
+
+  <line x1="360" y1="530" x2="600" y2="530" stroke="#0891b2" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+  <text x="480" y="525" text-anchor="middle" font-size="10" fill="#0e7490">UPSERT Attendance rows</text>
+
+  <line x1="360" y1="550" x2="120" y2="550" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-indigo-r)"/>
+  <text x="220" y="545" text-anchor="middle" font-size="10" fill="#4338ca">Redirect → attendance list</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 4 — Student Views Dashboard                    -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="30" y="566" width="860" height="20" rx="5" fill="#cffafe"/>
+  <text x="460" y="580" text-anchor="middle" font-size="11" font-weight="700" fill="#164e63">4 — Student Logs In &amp; Views Dashboard</text>
+
+  <line x1="820" y1="600" x2="380" y2="600" stroke="#059669" stroke-width="1.5" marker-end="url(#arr-green-r)"/>
+  <text x="600" y="595" text-anchor="middle" font-size="10" fill="#065f46">POST /accounts/login/ (credentials from email)</text>
+
+  <line x1="360" y1="614" x2="600" y2="614" stroke="#0891b2" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+  <text x="480" y="609" text-anchor="middle" font-size="10" fill="#0e7490">Verify + check Student group</text>
+
+  <line x1="360" y1="634" x2="800" y2="634" stroke="#059669" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-green)"/>
+  <text x="580" y="629" text-anchor="middle" font-size="10" fill="#065f46">Redirect → /dashboard/ (student view)</text>
+
+  <line x1="820" y1="652" x2="380" y2="652" stroke="#059669" stroke-width="1.5" marker-end="url(#arr-green-r)"/>
+  <text x="600" y="647" text-anchor="middle" font-size="10" fill="#065f46">GET /dashboard/student/</text>
+
+  <line x1="360" y1="666" x2="600" y2="666" stroke="#0891b2" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+  <text x="480" y="661" text-anchor="middle" font-size="10" fill="#0e7490">SELECT personal attendance + %</text>
+
+  <line x1="620" y1="680" x2="380" y2="680" stroke="#0891b2" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-cyan-r)"/>
+  <text x="480" y="675" text-anchor="middle" font-size="10" fill="#0e7490">Attendance rows + stats</text>
+
+  <line x1="360" y1="694" x2="800" y2="694" stroke="#059669" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-green)"/>
+  <text x="580" y="689" text-anchor="middle" font-size="10" fill="#065f46">Personal dashboard with charts</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Legend                                                 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="30" y="716" width="860" height="80" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="460" y="734" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">Legend</text>
+  <line x1="55" y1="752" x2="115" y2="752" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-indigo)"/>
+  <text x="120" y="756" font-size="10" fill="#334155">HTTP Request</text>
+  <line x1="55" y1="770" x2="115" y2="770" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-indigo)"/>
+  <text x="120" y="774" font-size="10" fill="#334155">HTTP Response / Redirect</text>
+  <line x1="270" y1="752" x2="330" y2="752" stroke="#0891b2" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+  <text x="335" y="756" font-size="10" fill="#334155">Database Query</text>
+  <line x1="270" y1="770" x2="330" y2="770" stroke="#059669" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr-green)"/>
+  <text x="335" y="774" font-size="10" fill="#334155">Email / Async Message</text>
+  <rect x="490" y="742" width="12" height="12" rx="3" fill="#fef9c3" stroke="#fbbf24" stroke-width="1"/>
+  <text x="508" y="753" font-size="10" fill="#334155">Django Signal (automatic side-effect)</text>
+  <rect x="490" y="762" width="12" height="12" rx="3" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="508" y="773" font-size="10" fill="#334155">Email Function (send_mail.py)</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Arrow marker definitions                               -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <defs>
+    <marker id="arr-indigo" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6366f1"/>
+    </marker>
+    <marker id="arr-indigo-r" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6366f1"/>
+    </marker>
+    <marker id="arr-cyan" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#0891b2"/>
+    </marker>
+    <marker id="arr-cyan-r" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#0891b2"/>
+    </marker>
+    <marker id="arr-green" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#059669"/>
+    </marker>
+    <marker id="arr-green-r" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#059669"/>
+    </marker>
+  </defs>
+</svg>

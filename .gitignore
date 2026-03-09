@@ -3,4 +3,29 @@
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+# Python
 *.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# Environment — NEVER commit real credentials
+.env
+
+# Virtual environments
+venv/
+env/
+.venv/
+virtual/
+
+# OS
+.DS_Store
+Thumbs.db
+.claude
+email.log

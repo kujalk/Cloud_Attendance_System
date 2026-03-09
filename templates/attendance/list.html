@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Attendance Records{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Attendance</li>{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-center justify-between flex-wrap gap-3 fade-in">
+  <div>
+    <h1 class="page-title">Attendance Records</h1>
+    <p class="page-subtitle">Browse and filter all attendance entries</p>
+  </div>
+  <div style="display:flex;gap:.75rem">
+    <a href="{% url 'mark_attendance' %}" class="btn btn-primary"><i class="fas fa-pen-to-square"></i> Mark Attendance</a>
+    <a href="{% url 'attendance_create' %}" class="btn btn-outline"><i class="fas fa-plus"></i> Single Entry</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card fade-in-delay-1" style="margin-bottom:1rem">
+  <div class="card-body" style="padding:.85rem 1.25rem">
+    <form method="get" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:160px">
+        <label class="form-label fs-xs">Subject</label>
+        {{ form.subject }}
+      </div>
+      <div style="min-width:140px">
+        <label class="form-label fs-xs">From</label>
+        {{ form.date_from }}
+      </div>
+      <div style="min-width:140px">
+        <label class="form-label fs-xs">To</label>
+        {{ form.date_to }}
+      </div>
+      <div style="min-width:140px">
+        <label class="form-label fs-xs">Status</label>
+        {{ form.status }}
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
+      <a href="{% url 'attendance_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-xmark"></i></a>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card fade-in-delay-2">
+  <div class="card-header">
+    <span class="card-title">{{ records|length }} record{{ records|length|pluralize }}</span>
+    <div class="search-bar" style="max-width:220px">
+      <i class="fas fa-search"></i>
+      <input type="text" id="tableSearch" class="form-control" placeholder="Quick search…" />
+    </div>
+  </div>
+  <div class="table-container">
+    {% if records %}
+    <table class="table searchable-table">
+      <thead>
+        <tr><th>Student</th><th>Subject</th><th>Date</th><th>Status</th><th>Remarks</th><th>Marked By</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:.6rem">
+              <div class="avatar sm">{{ r.student.first_name|slice:":1" }}{{ r.student.last_name|slice:":1" }}</div>
+              <a href="{% url 'student_detail' r.student.student_id %}" style="color:var(--text-primary);text-decoration:none;font-weight:500;font-size:.875rem">{{ r.student.full_name }}</a>
+            </div>
+          </td>
+          <td class="fs-sm text-muted">{{ r.subject.title|default:"—" }}</td>
+          <td class="fs-sm">{{ r.lecture_date }}</td>
+          <td><span class="badge badge-{{ r.status|lower }}">{{ r.status }}</span></td>
+          <td class="fs-xs text-muted">{{ r.remarks|default:"—"|truncatechars:40 }}</td>
+          <td class="fs-xs text-muted">{{ r.marked_by.get_full_name|default:r.marked_by.username|default:"—" }}</td>
+          <td>
+            <div style="display:flex;gap:.35rem">
+              <a href="{% url 'attendance_edit' r.id %}" class="btn btn-outline btn-icon btn-sm" title="Edit"><i class="fas fa-pen"></i></a>
+              <a href="{% url 'attendance_delete' r.id %}" class="btn btn-icon btn-sm" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)" title="Delete"><i class="fas fa-trash"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-clipboard-list"></i>
+      <p>No attendance records found.</p>
+      <a href="{% url 'mark_attendance' %}" class="btn btn-primary mt-3">Mark Attendance</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

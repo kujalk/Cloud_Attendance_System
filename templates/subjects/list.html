@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Subjects{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Subjects</li>{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-center justify-between flex-wrap gap-3 fade-in">
+  <div>
+    <h1 class="page-title">Subjects</h1>
+    <p class="page-subtitle">Manage course subjects</p>
+  </div>
+  <a href="{% url 'subject_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Subject</a>
+</div>
+
+<div class="card fade-in-delay-1">
+  <div class="card-header">
+    <span class="card-title">{{ subjects|length }} subject{{ subjects|length|pluralize }}</span>
+    <div class="search-bar" style="max-width:220px"><i class="fas fa-search"></i><input type="text" id="tableSearch" class="form-control" placeholder="Quick search…" /></div>
+  </div>
+  <div class="table-container">
+    {% if subjects %}
+    <table class="table searchable-table">
+      <thead><tr><th>Code</th><th>Title</th><th>Department</th><th>Credits</th><th>Students</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for s in subjects %}
+        <tr>
+          <td class="fw-600 fs-sm" style="color:var(--accent)">#{{ s.subject_code }}</td>
+          <td class="fw-600">{{ s.title }}</td>
+          <td class="fs-sm text-muted">{{ s.department.name|default:"—" }}</td>
+          <td class="fs-sm text-muted">{{ s.credits }}</td>
+          <td class="fs-sm">{{ s.student_count }}</td>
+          <td><span class="badge {% if s.is_active %}badge-active{% else %}badge-inactive{% endif %}">{% if s.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+          <td>
+            <a href="{% url 'subject_edit' s.subject_code %}" class="btn btn-outline btn-icon btn-sm" title="Edit"><i class="fas fa-pen"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><i class="fas fa-book-open"></i><p>No subjects yet.</p><a href="{% url 'subject_create' %}" class="btn btn-primary mt-3">Add first subject</a></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

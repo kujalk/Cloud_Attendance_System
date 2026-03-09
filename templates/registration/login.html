@@ -1,50 +1,104 @@
+{% load static %}
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-
-  <title>Attendance System</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.8/css/all.css">
-  <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <script src='https://kit.fontawesome.com/a076d05399.js'></script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In | CloudAttend</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <style>
+    .orb { position:absolute;border-radius:50%;filter:blur(60px);animation:float 8s ease-in-out infinite; }
+    .orb-1{width:280px;height:280px;background:rgba(99,102,241,.4);top:5%;right:8%;animation-delay:0s}
+    .orb-2{width:200px;height:200px;background:rgba(168,85,247,.3);bottom:15%;left:5%;animation-delay:3s}
+    .orb-3{width:150px;height:150px;background:rgba(6,182,212,.25);top:50%;left:30%;animation-delay:1.5s}
+    .grid-dots{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:32px 32px}
+    .fc{width:100%;padding:.75rem 1rem .75rem 2.75rem;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;color:#0f172a;font-size:.9rem;font-family:'Inter',sans-serif;outline:none;transition:all .2s ease}
+    .fc:focus{border-color:#6366f1;background:#fff;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+    .fc::placeholder{color:#94a3b8}
+    .iw{position:relative}
+    .ii{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:.875rem}
+    .btn-login{width:100%;padding:.8rem;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s ease;box-shadow:0 4px 16px rgba(99,102,241,.4);letter-spacing:.02em}
+    .btn-login:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(99,102,241,.55)}
+    .fl{display:block;font-size:.78rem;font-weight:600;color:#475569;margin-bottom:.4rem;letter-spacing:.03em;text-transform:uppercase}
+    .err{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.75rem 1rem;color:#dc2626;font-size:.85rem;display:flex;align-items:center;gap:.6rem;margin-bottom:1.25rem}
+  </style>
 </head>
+<body style="background:var(--bg-base);">
+<div class="login-page">
 
-<body>
-    <div class="container-fluid" >
-        <div class="row">
-            <div class="col-sm-4"></div>
-            <div class="col-sm-4" style="text-align: center;padding-top: 80px;border: 3px solid grey;">
-                <div class="card border-primary mb-3" style="font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;">
-                    <h2 style="font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;">Cloud Attendance System</h2>
-                    <i class='fas fa-cloud' style='font-size:150px;color:orangered'></i>
-                    <h3 class="card-header info-color white-text text-center py-4">
-                        <strong style="color: blue;">Login</strong>
-                    </h3>
-                
-                    <form method="POST">
-                      {% csrf_token %}
-      
-                      {{form.as_p}}
+  <!-- LEFT HERO -->
+  <div class="login-hero">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="grid-dots"></div>
+    <div class="login-hero-content">
+      <div style="width:56px;height:56px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;margin-bottom:2rem;box-shadow:0 8px 24px rgba(99,102,241,.5);">
+        <i class="fas fa-cloud"></i>
+      </div>
+      <div class="login-hero-title">Cloud-Powered<br><span>Smart Attendance</span><br>Management</div>
+      <p class="login-hero-sub">Track student attendance in real time, anywhere.</p>
+      <ul class="feature-list">
+        <li class="feature-item"><i class="fas fa-bolt"></i>Instant bulk attendance marking</li>
+        <li class="feature-item"><i class="fas fa-chart-line"></i>Live analytics &amp; interactive charts</li>
+        <li class="feature-item"><i class="fas fa-user-shield"></i>Separate admin &amp; student portals</li>
+        <li class="feature-item"><i class="fas fa-file-export"></i>Detailed reports by subject &amp; date</li>
+        <li class="feature-item"><i class="fas fa-mobile-alt"></i>Fully responsive on all devices</li>
+      </ul>
+    </div>
+  </div>
 
-                        <button type="submit" class="btn btn-primary">Log In</button>
-                      </form>
-                
-                </div>
-                
-                </div>
-                <!-- Material form subscription -->
-            </div>
-            <div class="col-sm-4"></div>
+  <!-- RIGHT FORM -->
+  <div class="login-panel">
+    <div class="login-box fade-in">
+      <div class="login-logo"><i class="fas fa-cloud"></i></div>
+      <h1 class="login-title">Welcome back</h1>
+      <p class="login-sub">Sign in to your CloudAttend account</p>
+
+      {% if form.errors %}
+      <div class="err"><i class="fas fa-exclamation-circle"></i>Invalid credentials. Please try again.</div>
+      {% endif %}
+
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}" />
+
+        <div style="margin-bottom:1.1rem">
+          <label for="id_username" class="fl">Username</label>
+          <div class="iw">
+            <i class="fas fa-user ii"></i>
+            <input type="text" id="id_username" name="username" class="fc"
+                   placeholder="Enter your username" autocomplete="username" autofocus required />
+          </div>
         </div>
 
+        <div style="margin-bottom:1.5rem">
+          <label for="id_password" class="fl">Password</label>
+          <div class="iw">
+            <i class="fas fa-lock ii"></i>
+            <input type="password" id="id_password" name="password" class="fc"
+                   placeholder="Enter your password" autocomplete="current-password" required />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login">
+          <i class="fas fa-right-to-bracket" style="margin-right:.45rem"></i>Sign In
+        </button>
+      </form>
+
+      <div style="height:1px;background:#e2e8f0;margin:1.5rem 0"></div>
+      <div style="text-align:center;color:#64748b;font-size:.8rem">
+        <i class="fas fa-shield-halved" style="margin-right:.3rem;color:var(--accent)"></i>
+        Admin accounts have full management access.<br>
+        Student accounts are linked automatically on enrollment.
+      </div>
     </div>
+  </div>
+
+</div>
+<script src="{% static 'js/main.js' %}"></script>
 </body>
 </html>
