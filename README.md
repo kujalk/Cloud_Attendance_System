@@ -158,7 +158,7 @@ Cloud_Attendance_System/
 │   └── template.yaml           # CloudFormation stack (VPC + Aurora Serverless v2 + EB)
 │
 ├── .ebextensions/
-│   └── django.config           # EB hooks: migrate + collectstatic on deploy
+│   └── django.config           # EB hooks: migrate + collectstatic + createsuperuser on deploy
 │
 ├── .env                        # Local environment variables (gitignored)
 ├── .env.example                # Safe template to commit
@@ -362,6 +362,9 @@ Go to **Settings → Secrets and variables → Actions → New repository secret
 | `AWS_REGION` | `us-east-1` | **Yes** |
 | `DB_PASSWORD` | `MySecure123!` | **Yes** |
 | `DJANGO_SECRET_KEY` | `python -c "import secrets; print(secrets.token_urlsafe(50))"` | **Yes** |
+| `ADMIN_USERNAME` | `admin` | **Yes** — superuser created on first deploy |
+| `ADMIN_EMAIL` | `admin@example.com` | **Yes** — superuser email |
+| `ADMIN_PASSWORD` | `MyAdmin123!` | **Yes** — superuser password (min 8 chars) |
 | `EB_PLATFORM` | `64bit Amazon Linux 2023 v4.3.0 running Python 3.12` | No — auto-detected if absent |
 | `EMAIL_HOST` | `smtp.gmail.com` | No |
 | `EMAIL_PORT` | `587` | No |
@@ -430,36 +433,17 @@ The workflow ([`.github/workflows/destroy.yml`](.github/workflows/destroy.yml)) 
 
 ## Post-Deployment Steps
 
-The workflow handles migrations and static files automatically (via `.ebextensions/django.config`).
+The workflow handles everything automatically via `.ebextensions/django.config`:
 
-The **only manual step** is creating the first admin superuser. Do this once after the first successful deployment:
+| Step | How |
+|------|-----|
+| Database migrations | `manage.py migrate --noinput` — runs on every deploy |
+| Static files | `manage.py collectstatic --noinput` — runs on every deploy |
+| **Superuser creation** | `manage.py createsuperuser --noinput` — reads `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` from GitHub Secrets → EB env vars; skipped silently if user already exists |
 
-```bash
-# Install the EB CLI
-pip install awsebcli
+**No manual SSH required.** Add the three `ADMIN_*` secrets before the first deploy (see [GitHub Actions CI/CD](#github-actions-cicd)) and the superuser is created automatically.
 
-# Initialise (run from the project root)
-eb init CloudAttendanceSystem --region us-east-1 --platform "Python 3.12"
-
-# SSH into the running instance
-eb ssh
-
-# --- Inside the instance ---
-source /var/app/venv/*/bin/activate
-cd /var/app/current
-
-# Create admin account
-python manage.py createsuperuser
-
-# Create the Student auth group (required for student login)
-python manage.py shell -c "
-from django.contrib.auth.models import Group
-Group.objects.get_or_create(name='Student')
-print('Done.')
-"
-```
-
-After this the app is fully operational. All future code changes deploy automatically on `git push`.
+After the first successful deploy the app is fully operational. All future code changes deploy automatically on `git push`.
 
 ---
 
