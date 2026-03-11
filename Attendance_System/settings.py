@@ -158,11 +158,10 @@ ATTENDANCE_ADMIN_EMAILS = os.environ.get('ATTENDANCE_ADMIN_EMAILS', '')
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 
 # ── Logging ───────────────────────────────────────────────────────────────────
-import logging.handlers  # noqa: E402 — needed for RotatingFileHandler type hint
-
-_LOG_DIR = Path(os.environ.get('LOG_DIR', '/tmp/app-logs'))
-_LOG_DIR.mkdir(parents=True, exist_ok=True)
-
+# Log to stdout only — on EB, gunicorn stdout → /var/log/web.stdout.log →
+# CloudWatch Logs.  File handlers cause PermissionError on AL2023 because
+# collectstatic (cfn-init/root) creates the directory before gunicorn
+# (webapp user) tries to write to it.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -178,48 +177,29 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'app_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': str(_LOG_DIR / 'app.log'),
-            'maxBytes': 5 * 1024 * 1024,   # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
-        'email_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': str(_LOG_DIR / 'email.log'),
-            'maxBytes': 2 * 1024 * 1024,   # 2 MB
-            'backupCount': 3,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
     },
     'root': {
         'handlers': ['console'],
         'level': 'WARNING',
     },
     'loggers': {
-        # App code — DEBUG and above goes to console + rotating file
         'api_v1': {
-            'handlers': ['console', 'app_file'],
+            'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False,
         },
-        # Email helpers only — separate log file
         'api_v1.send_mail': {
-            'handlers': ['console', 'email_file'],
+            'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False,
         },
-        # Django request/security — INFO and above
         'django': {
-            'handlers': ['console', 'app_file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['console', 'app_file'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
