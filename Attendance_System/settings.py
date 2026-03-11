@@ -160,8 +160,8 @@ SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 # ── Logging ───────────────────────────────────────────────────────────────────
 import logging.handlers  # noqa: E402 — needed for RotatingFileHandler type hint
 
-_LOG_DIR = BASE_DIR / 'logs'
-_LOG_DIR.mkdir(exist_ok=True)
+_LOG_DIR = Path(os.environ.get('LOG_DIR', '/tmp/app-logs'))
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     'version': 1,
