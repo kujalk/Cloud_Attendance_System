@@ -59,6 +59,16 @@ Parameters:
     MaxLength: 41
     Description: Aurora master password (min 8 characters).
 
+  AuroraEngineVersion:
+    Type: String
+    Default: '8.0.mysql_aurora.3.04.0'
+    Description: >
+      Aurora MySQL engine version. Must be available in your region.
+      The deploy workflow auto-detects the latest available version and
+      overrides this default, so you rarely need to change it manually.
+      Run: aws rds describe-db-engine-versions --engine aurora-mysql
+           --query "DBEngineVersions[?starts_with(EngineVersion,'8.0')].EngineVersion"
+
   AuroraMinCapacity:
     Type: Number
     Default: 0.5
@@ -92,7 +102,7 @@ Metadata:
       - Label: { default: Compute }
         Parameters: [EC2InstanceType]
       - Label: { default: Database (Aurora Serverless v2) }
-        Parameters: [DBName, DBUsername, DBPassword, AuroraMinCapacity, AuroraMaxCapacity]
+        Parameters: [DBName, DBUsername, DBPassword, AuroraEngineVersion, AuroraMinCapacity, AuroraMaxCapacity]
       - Label: { default: Security }
         Parameters: [DjangoSecretKey]
     ParameterLabels:
@@ -249,7 +259,7 @@ Resources:
       DBClusterIdentifier: !Sub '${ApplicationName}-cluster'
       DatabaseName: !Ref DBName
       Engine: aurora-mysql
-      EngineVersion: '8.0.mysql_aurora.3.05.2'
+      EngineVersion: !Ref AuroraEngineVersion
       MasterUsername: !Ref DBUsername
       MasterUserPassword: !Ref DBPassword
       ServerlessV2ScalingConfiguration:

@@ -109,6 +109,21 @@ jobs:
           fi
           echo "eb_platform=$PLATFORM" | tee -a "$GITHUB_OUTPUT"
 
+          # ── Resolve Aurora MySQL 8.0 engine version available in this region ──
+          # Sorts all 8.0.mysql_aurora.* versions and picks the latest one.
+          AURORA_VERSION=$(aws rds describe-db-engine-versions \
+            --engine aurora-mysql \
+            --query "sort_by(DBEngineVersions[?starts_with(EngineVersion,'8.0')], &EngineVersion)[-1].EngineVersion" \
+            --output text 2>/dev/null || echo "")
+          # Fall back to a broadly available version if detection fails
+          if [ -z "$AURORA_VERSION" ] || [ "$AURORA_VERSION" = "None" ]; then
+            AURORA_VERSION="8.0.mysql_aurora.3.04.0"
+            echo "Aurora version detection failed — using fallback: $AURORA_VERSION"
+          else
+            echo "Auto-detected Aurora engine version: $AURORA_VERSION"
+          fi
+          echo "aurora_version=$AURORA_VERSION" | tee -a "$GITHUB_OUTPUT"
+
           # ── Summary ──
           echo "### Resource probe" >> "$GITHUB_STEP_SUMMARY"
           echo "| Resource | Status |" >> "$GITHUB_STEP_SUMMARY"
@@ -117,6 +132,7 @@ jobs:
           echo "| EB Application \`$APP_NAME\` | $EB_APP_EXISTS |" >> "$GITHUB_STEP_SUMMARY"
           echo "| EB Environment \`$ENV_NAME\` | $EB_ENV_STATUS |" >> "$GITHUB_STEP_SUMMARY"
           echo "| EB Platform | $PLATFORM |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Aurora Engine Version | $AURORA_VERSION |" >> "$GITHUB_STEP_SUMMARY"
 
       # ── 4. Deploy / update CloudFormation stack ──────────────────────────────
       #    `aws cloudformation deploy` is idempotent:
@@ -138,6 +154,7 @@ jobs:
               ApplicationName="$APP_NAME" \
               EnvironmentName=production \
               SolutionStackName="${{ steps.probe.outputs.eb_platform }}" \
+              AuroraEngineVersion="${{ steps.probe.outputs.aurora_version }}" \
               DBPassword="${{ secrets.DB_PASSWORD }}" \
               DjangoSecretKey="${{ secrets.DJANGO_SECRET_KEY }}"
 
