@@ -79,14 +79,6 @@ jobs:
             echo "cf_status=DOES_NOT_EXIST" >> "$GITHUB_OUTPUT"
           fi
 
-          # ── EB Application ──
-          EB_APP_COUNT=$(aws elasticbeanstalk describe-applications \
-            --application-names "$APP_NAME" \
-            --query "length(Applications)" \
-            --output text 2>/dev/null || echo "0")
-          EB_APP_EXISTS=$([[ "$EB_APP_COUNT" -gt "0" ]] && echo "true" || echo "false")
-          echo "eb_app_exists=$EB_APP_EXISTS" | tee -a "$GITHUB_OUTPUT"
-
           # ── EB Environment ──
           EB_ENV_STATUS=$(aws elasticbeanstalk describe-environments \
             --application-name "$APP_NAME" \
@@ -129,7 +121,6 @@ jobs:
           echo "| Resource | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| CloudFormation stack \`$STACK_NAME\` | \`$CF_STATUS\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| EB Application \`$APP_NAME\` | $EB_APP_EXISTS |" >> "$GITHUB_STEP_SUMMARY"
           echo "| EB Environment \`$ENV_NAME\` | $EB_ENV_STATUS |" >> "$GITHUB_STEP_SUMMARY"
           echo "| EB Platform | $PLATFORM |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Aurora Engine Version | $AURORA_VERSION |" >> "$GITHUB_STEP_SUMMARY"
@@ -217,13 +208,10 @@ jobs:
 
           aws s3 cp deploy.zip "s3://$S3_BUCKET/$VERSION_LABEL.zip"
 
-          # Ensure EB application exists (it's created by CF, but guard anyway)
-          if [[ "${{ steps.probe.outputs.eb_app_exists }}" == "false" ]]; then
-            aws elasticbeanstalk create-application \
-              --application-name "$APP_NAME" \
-              --description "Cloud Attendance System"
-          fi
-
+          # CF creates the EB application; --auto-create-application handles any
+          # edge-case where it's missing (e.g. app-only scope on a fresh account).
+          # We no longer call create-application explicitly — it would fail with
+          # "already exists" when CF ran first in the same pipeline.
           aws elasticbeanstalk create-application-version \
             --application-name "$APP_NAME" \
             --version-label "$VERSION_LABEL" \
