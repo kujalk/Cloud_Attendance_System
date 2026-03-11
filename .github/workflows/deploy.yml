@@ -181,7 +181,7 @@ jobs:
           S3_BUCKET="cloudattend-deployments-${{ github.repository_owner }}"
           echo "S3_BUCKET=$S3_BUCKET" >> "$GITHUB_ENV"
 
-          if aws s3api head-bucket --bucket "$S3_BUCKET" 2>/dev/null; then
+          if aws s3api head-bucket --bucket "$S3_BUCKET" >/dev/null 2>&1; then
             echo "Bucket $S3_BUCKET already exists"
           else
             echo "Creating bucket $S3_BUCKET in ${{ secrets.AWS_REGION }}"

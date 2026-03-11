@@ -68,10 +68,12 @@ jobs:
             --output text 2>/dev/null | cut -d. -f1 || echo "")
           echo "aurora_cluster_prefix=$CLUSTER_ID" >> "$GITHUB_OUTPUT"
 
-          # S3 bucket exists?
-          S3_EXISTS=$(aws s3api head-bucket --bucket "$S3_BUCKET" 2>/dev/null \
-            && echo "true" || echo "false")
-          echo "s3_exists=$S3_EXISTS" >> "$GITHUB_OUTPUT"
+          # S3 bucket exists? (redirect all output — newer CLI versions emit JSON body)
+          if aws s3api head-bucket --bucket "$S3_BUCKET" >/dev/null 2>&1; then
+            echo "s3_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "s3_exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
           echo "### Resources to be destroyed" >> "$GITHUB_STEP_SUMMARY"
           echo "| Resource | Status |" >> "$GITHUB_STEP_SUMMARY"
