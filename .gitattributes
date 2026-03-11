@@ -1,0 +1,27 @@
+# Enforce UTF-8 for all text files so VS Code / Windows tools can't save UTF-16
+* text=auto eol=lf
+
+# Explicitly mark config/code files as text (never binary)
+*.py        text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.config    text eol=lf
+*.txt       text eol=lf
+*.md        text eol=lf
+*.json      text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.js        text eol=lf
+*.svg       text eol=lf
+*.cfg       text eol=lf
+*.ini       text eol=lf
+*.env*      text eol=lf
+
+# Binary — never touch
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.zip  binary
+*.gz   binary

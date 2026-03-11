@@ -162,7 +162,7 @@ jobs:
           zip -r deploy.zip . \
             --exclude "*.git*" \
             --exclude ".github/*" \
-            --exclude "venv/*" ".venv/*" "env/*" \
+            --exclude "venv/*" ".venv/*" "env/*" "virtual/*" \
             --exclude ".env" \
             --exclude "db.sqlite3" \
             --exclude "media/*" "staticfiles/*" \

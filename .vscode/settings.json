@@ -1,0 +1,16 @@
+{
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+  "[requirements.txt]": {
+    "files.encoding": "utf8"
+  },
+  "[*.config]": {
+    "files.encoding": "utf8"
+  },
+  "[*.yaml]": {
+    "files.encoding": "utf8"
+  },
+  "[*.yml]": {
+    "files.encoding": "utf8"
+  }
+}
