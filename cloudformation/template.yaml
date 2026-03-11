@@ -91,6 +91,24 @@ Parameters:
       Django SECRET_KEY. Generate with:
       python -c "import secrets; print(secrets.token_urlsafe(50))"
 
+  AdminUsername:
+    Type: String
+    Default: admin
+    MinLength: 1
+    MaxLength: 150
+    Description: Django superuser username (created on first deploy).
+
+  AdminEmail:
+    Type: String
+    Default: admin@example.com
+    Description: Django superuser email.
+
+  AdminPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Django superuser password (min 8 characters).
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Metadata — parameter grouping in the console
 # ──────────────────────────────────────────────────────────────────────────────
@@ -105,6 +123,8 @@ Metadata:
         Parameters: [DBName, DBUsername, DBPassword, AuroraEngineVersion, AuroraMinCapacity, AuroraMaxCapacity]
       - Label: { default: Security }
         Parameters: [DjangoSecretKey]
+      - Label: { default: Superuser (first deploy) }
+        Parameters: [AdminUsername, AdminEmail, AdminPassword]
     ParameterLabels:
       ApplicationName:    { default: Application Name }
       EnvironmentName:    { default: Environment Stage }
@@ -383,6 +403,9 @@ Resources:
         - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: SECRET_KEY,   Value: !Ref DjangoSecretKey }
         - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: DEBUG,        Value: 'False' }
         - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: ALLOWED_HOSTS, Value: !Sub '.elasticbeanstalk.com' }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: DJANGO_SUPERUSER_USERNAME, Value: !Ref AdminUsername }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: DJANGO_SUPERUSER_EMAIL,    Value: !Ref AdminEmail }
+        - { Namespace: aws:elasticbeanstalk:application:environment, OptionName: DJANGO_SUPERUSER_PASSWORD, Value: !Ref AdminPassword }
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Outputs

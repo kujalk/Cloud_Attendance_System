@@ -147,7 +147,10 @@ jobs:
               SolutionStackName="${{ steps.probe.outputs.eb_platform }}" \
               AuroraEngineVersion="${{ steps.probe.outputs.aurora_version }}" \
               DBPassword="${{ secrets.DB_PASSWORD }}" \
-              DjangoSecretKey="${{ secrets.DJANGO_SECRET_KEY }}"
+              DjangoSecretKey="${{ secrets.DJANGO_SECRET_KEY }}" \
+              AdminUsername="${{ secrets.ADMIN_USERNAME }}" \
+              AdminEmail="${{ secrets.ADMIN_EMAIL }}" \
+              AdminPassword="${{ secrets.ADMIN_PASSWORD }}"
 
           # Show outputs
           aws cloudformation describe-stacks \
