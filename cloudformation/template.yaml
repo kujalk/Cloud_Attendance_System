@@ -362,7 +362,7 @@ Resources:
     Properties:
       ApplicationName: !Ref EBApplication
       EnvironmentName: !Sub '${ApplicationName}-${EnvironmentName}'
-      CNAMEPrefix: !Sub '${ApplicationName}-${EnvironmentName}'
+      CNAMEPrefix: !Sub '${AWS::StackName}'
       SolutionStackName: !Ref SolutionStackName
       OptionSettings:
 
@@ -415,7 +415,7 @@ Outputs:
 
   ApplicationURL:
     Description: Public URL of the Elastic Beanstalk environment (CNAME)
-    Value: !Sub 'http://${ApplicationName}-${EnvironmentName}.elasticbeanstalk.com'
+    Value: !Sub 'http://${AWS::StackName}.elasticbeanstalk.com'
     Export:
       Name: !Sub '${AWS::StackName}-AppURL'
 
