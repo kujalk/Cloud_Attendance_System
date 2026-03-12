@@ -245,7 +245,7 @@ sub, _ = Subject.objects.get_or_create(title='Data Structures', defaults={'depar
 
 s = Student.objects.create(
     first_name='Jane', last_name='Doe',
-    email='jane@maildrop.cc',   # use maildrop.cc for instant throwaway inbox
+    email='janedoe@yopmail.com',   # use yopmail.com for instant throwaway inbox
     mobile_no='0001234567',
     department=dept, roll_number='CS-001'
 )
@@ -253,8 +253,8 @@ print(f'Student login: username={s.student_id[:30]}, password=Student@{s.student
 "
 ```
 
-> **Tip:** Use [maildrop.cc](https://maildrop.cc) for disposable student email addresses during testing.
-> Any email sent to `anything@maildrop.cc` is instantly readable at `maildrop.cc/anything` — no sign-up needed.
+> **Tip:** Use [yopmail.com](https://yopmail.com) for disposable student email addresses during testing.
+> Set a student's email to `anything@yopmail.com`, then visit `https://yopmail.com`, enter the username, and read the inbox instantly — no sign-up needed.
 
 ### 7 — Run the development server
 
@@ -483,9 +483,9 @@ Admin/Staff users have full control over all data in the system.
    - Adds user to the `Student` group
    - Sends a welcome email with credentials
 
-> **Test emails:** Use [maildrop.cc](https://maildrop.cc) for student emails during testing.
-> E.g. set a student's email to `jane.cs001@maildrop.cc` and read it instantly at
-> `maildrop.cc/jane.cs001` — no registration, no spam filters.
+> **Test emails:** Use [yopmail.com](https://yopmail.com) for student emails during testing.
+> Set a student's email to e.g. `jane.cs001@yopmail.com`, then go to `https://yopmail.com`,
+> enter `jane.cs001` in the inbox field, and read the welcome email — no registration, no spam filters.
 
 ### Marking Attendance
 
@@ -512,7 +512,7 @@ When an admin registers you, you receive a welcome email containing:
 - Your **username** (Student ID)
 - Your **temporary password** (`Student@xxxx`)
 
-> If no email arrives, ask your admin for your credentials, or use [maildrop.cc](https://maildrop.cc) if your email address was set to a maildrop.cc address.
+> If no email arrives, ask your admin for your credentials, or use [yopmail.com](https://yopmail.com) if your email address was set to a `@yopmail.com` address.
 
 ### Student Dashboard
 
@@ -542,17 +542,17 @@ To: jane@maildrop.cc
 ...
 ```
 
-### Maildrop.cc — zero-setup disposable inboxes (recommended for testing)
+### YOPmail — zero-setup disposable inboxes (recommended for testing)
 
-Use [maildrop.cc](https://maildrop.cc) email addresses for student accounts when testing.
+Use [yopmail.com](https://yopmail.com) email addresses for student accounts when testing.
 
 | Step | Action |
 |------|--------|
-| Set student email | `anything@maildrop.cc` (e.g. `jane.test@maildrop.cc`) |
-| Read the inbox | Visit `https://maildrop.cc/jane.test` — no login, instant |
-| Delete inbox | Just stop using it — auto-expires |
+| Set student email | `anything@yopmail.com` (e.g. `jane.test@yopmail.com`) |
+| Read the inbox | Go to `https://yopmail.com` → enter `jane.test` → click the check button |
+| Delete inbox | Just stop using it — inboxes auto-expire after 8 days |
 
-This way you can test the full welcome email flow without configuring SMTP at all.
+This way you can test the full welcome email flow (including the login URL) without needing a real email account.
 
 ### Gmail (recommended for production)
 
@@ -607,6 +607,84 @@ curl http://<host>/api/v1/students/ -H "Authorization: Token <your-token>"
 | GET, POST | `/api/v1/enrollments/` | List / create enrolments |
 
 All list endpoints are **paginated** (20 per page). Append `?page=2` for subsequent pages.
+
+---
+
+## AWS Resource Versions (as deployed)
+
+The following versions were used in the tested production deployment (March 2026, `us-east-1`).
+The deploy workflow auto-detects the latest available versions in your region — these are recorded here for reference.
+
+| Resource | Version / AMI |
+|----------|--------------|
+| **EB Platform** | `64bit Amazon Linux 2023 v4.x running Python 3.12` (auto-detected; see EB console → Platform) |
+| **Aurora MySQL engine** | `8.0.mysql_aurora.3.07.x` (auto-detected; fallback: `8.0.mysql_aurora.3.04.0`) |
+| **Aurora instance class** | `db.serverless` (Aurora Serverless v2) |
+| **EC2 instance type** | `t3.micro` (EB default; configurable in `cloudformation/template.yaml`) |
+| **Python runtime** | 3.12 |
+| **Django** | 5.0.6 |
+| **mysqlclient** | 2.2.4 |
+
+To check the exact versions currently deployed in your stack:
+
+```bash
+# EB platform version
+aws elasticbeanstalk describe-environments \
+  --application-name CloudAttendanceSystem \
+  --query "Environments[0].PlatformArn" --output text
+
+# Aurora engine version
+aws rds describe-db-clusters \
+  --db-cluster-identifier cloudattendancesystem-cluster \
+  --query "DBClusters[0].EngineVersion" --output text
+```
+
+---
+
+## Verifying the Database is Aurora (not SQLite)
+
+After deploying, confirm Django is connected to Aurora MySQL — not the local SQLite fallback.
+
+### Option 1 — Check the deploy log on the EB instance
+
+```bash
+# SSH into your EB instance, then:
+sudo grep "DB_CHECK" /var/log/cfn-init.log
+```
+
+Expected output:
+```
+DB_CHECK: using Aurora MySQL | host=cloudattendancesystem-cluster.cluster-xxx.us-east-1.rds.amazonaws.com | db=attendance_db
+DB_CHECK: connection OK
+```
+
+If you see `WARNING — RDS_HOSTNAME not set, using SQLite`, the `RDS_*` environment variables are missing from the EB environment (check CloudFormation stack outputs).
+
+### Option 2 — Check EB environment variables in AWS Console
+
+1. Go to **Elastic Beanstalk → Environments → CloudAttendanceSystem-production**
+2. Click **Configuration → Environment properties**
+3. Verify `RDS_HOSTNAME` is set to the Aurora cluster endpoint (e.g. `cloudattendancesystem-cluster.cluster-xxx.rds.amazonaws.com`)
+
+If `RDS_HOSTNAME` is missing, the CloudFormation stack either wasn't deployed with scope `all` or the `ADMIN_*` / DB parameters weren't passed.
+
+### Option 3 — Live query via SSH
+
+```bash
+# On the EB instance:
+source /opt/elasticbeanstalk/deployment/env
+source /var/app/venv/*/bin/activate
+cd /var/app/current
+
+python manage.py shell -c "
+from django.db import connection
+with connection.cursor() as c:
+    c.execute('SELECT VERSION()')
+    print('Connected to:', c.fetchone()[0])
+"
+```
+
+Expected: `Connected to: 8.0.mysql_aurora.3.07.x` (or similar Aurora version).
 
 ---
 

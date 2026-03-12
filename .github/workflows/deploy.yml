@@ -290,6 +290,16 @@ jobs:
             --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
             --output text 2>/dev/null || echo "$ENV_NAME")
 
+          # SITE_URL: use secret if provided, otherwise auto-detect from CF outputs
+          SITE_URL_VALUE="${{ secrets.SITE_URL }}"
+          if [ -z "$SITE_URL_VALUE" ]; then
+            SITE_URL_VALUE=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query "Stacks[0].Outputs[?OutputKey=='ApplicationURL'].OutputValue" \
+              --output text 2>/dev/null || echo "")
+            echo "SITE_URL secret not set — auto-detected: $SITE_URL_VALUE"
+          fi
+
           aws elasticbeanstalk update-environment \
             --application-name "$APP_NAME" \
             --environment-name "$ACTUAL_ENV" \
@@ -301,7 +311,7 @@ jobs:
               "Namespace=aws:elasticbeanstalk:application:environment,OptionName=EMAIL_HOST_PASSWORD,Value=${{ secrets.EMAIL_HOST_PASSWORD }}" \
               "Namespace=aws:elasticbeanstalk:application:environment,OptionName=DEFAULT_FROM_EMAIL,Value=${{ secrets.DEFAULT_FROM_EMAIL }}" \
               "Namespace=aws:elasticbeanstalk:application:environment,OptionName=ATTENDANCE_ADMIN_EMAILS,Value=${{ secrets.ATTENDANCE_ADMIN_EMAILS }}" \
-              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=SITE_URL,Value=${{ secrets.SITE_URL }}"
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=SITE_URL,Value=$SITE_URL_VALUE"
 
           echo "Email settings applied to EB — waiting for env update..."
           aws elasticbeanstalk wait environment-updated \
