@@ -79,15 +79,22 @@ jobs:
             echo "cf_status=DOES_NOT_EXIST" >> "$GITHUB_OUTPUT"
           fi
 
-          # ── EB Environment ──
-          EB_ENV_STATUS=$(aws elasticbeanstalk describe-environments \
-            --application-name "$APP_NAME" \
-            --environment-names "$ENV_NAME" \
-            --query "Environments[?Status!='Terminated'].Status|[0]" \
-            --output text 2>/dev/null || echo "None")
-          EB_ENV_EXISTS=$([[ "$EB_ENV_STATUS" != "None" && "$EB_ENV_STATUS" != "Terminated" ]] \
-            && echo "true" || echo "false")
-          echo "eb_env_exists=$EB_ENV_EXISTS" | tee -a "$GITHUB_OUTPUT"
+          # ── EB Environment — resolve name from CF outputs (if stack exists) ──
+          CF_ENV=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
+            --output text 2>/dev/null || echo "")
+          if [ -n "$CF_ENV" ] && [ "$CF_ENV" != "None" ]; then
+            EB_ENV_STATUS=$(aws elasticbeanstalk describe-environments \
+              --application-name "$APP_NAME" \
+              --environment-names "$CF_ENV" \
+              --query "Environments[?Status!='Terminated'].Status|[0]" \
+              --output text 2>/dev/null || echo "None")
+            echo "Resolved EB environment from CF outputs: $CF_ENV ($EB_ENV_STATUS)"
+          else
+            CF_ENV="(stack not yet deployed)"
+            EB_ENV_STATUS="None"
+          fi
           echo "eb_env_status=$EB_ENV_STATUS" | tee -a "$GITHUB_OUTPUT"
 
           # ── Resolve EB platform (use secret, or auto-detect latest Python 3.12) ──
@@ -121,7 +128,7 @@ jobs:
           echo "| Resource | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| CloudFormation stack \`$STACK_NAME\` | \`$CF_STATUS\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| EB Environment \`$ENV_NAME\` | $EB_ENV_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| EB Environment \`$CF_ENV\` | $EB_ENV_STATUS |" >> "$GITHUB_STEP_SUMMARY"
           echo "| EB Platform | $PLATFORM |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Aurora Engine Version | $AURORA_VERSION |" >> "$GITHUB_STEP_SUMMARY"
 
@@ -225,32 +232,25 @@ jobs:
       - name: Deploy to EB environment (create or update)
         if: github.event.inputs.scope != 'infra-only'
         run: |
-          if [[ "${{ steps.probe.outputs.eb_env_exists }}" == "true" ]]; then
-            # Environment already exists — update it with new version
-            echo "Updating existing environment $ENV_NAME..."
-            aws elasticbeanstalk update-environment \
-              --application-name "$APP_NAME" \
-              --environment-name "$ENV_NAME" \
-              --version-label "$VERSION_LABEL"
-          else
-            # Environment doesn't exist yet (CF may have just created it without a version)
-            # Check if CF just created it
-            CF_ENV=$(aws cloudformation describe-stacks \
-              --stack-name "$STACK_NAME" \
-              --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
-              --output text 2>/dev/null || echo "")
-            if [ -n "$CF_ENV" ]; then
-              echo "Deploying version to CF-created environment $CF_ENV..."
-              aws elasticbeanstalk update-environment \
-                --application-name "$APP_NAME" \
-                --environment-name "$CF_ENV" \
-                --version-label "$VERSION_LABEL"
-            else
-              echo "No environment found — creating $ENV_NAME from CF outputs..."
-              echo "ERROR: EB environment not found. Ensure CloudFormation stack deployed successfully."
-              exit 1
-            fi
+          # Always resolve env name from CF outputs — never use the hardcoded ENV_NAME.
+          # CF may have replaced the environment (e.g. when CNAMEPrefix was added),
+          # so the probe-time name can be stale by the time we reach this step.
+          ACTUAL_ENV=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
+            --output text 2>/dev/null || echo "")
+
+          if [ -z "$ACTUAL_ENV" ] || [ "$ACTUAL_ENV" = "None" ]; then
+            echo "ERROR: Could not resolve EB environment name from CF outputs."
+            echo "Ensure the CloudFormation stack deployed successfully (scope=all)."
+            exit 1
           fi
+
+          echo "Deploying version $VERSION_LABEL to environment $ACTUAL_ENV..."
+          aws elasticbeanstalk update-environment \
+            --application-name "$APP_NAME" \
+            --environment-name "$ACTUAL_ENV" \
+            --version-label "$VERSION_LABEL"
 
       # ── 9. Wait for EB environment to become Ready ───────────────────────────
       - name: Wait for EB environment Ready
