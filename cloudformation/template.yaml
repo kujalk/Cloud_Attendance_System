@@ -361,7 +361,6 @@ Resources:
     DependsOn: AuroraWriterInstance
     Properties:
       ApplicationName: !Ref EBApplication
-      EnvironmentName: !Sub '${ApplicationName}-${EnvironmentName}'
       CNAMEPrefix: !Sub '${AWS::StackName}'
       SolutionStackName: !Ref SolutionStackName
       OptionSettings:
