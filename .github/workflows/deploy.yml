@@ -290,14 +290,19 @@ jobs:
             --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
             --output text 2>/dev/null || echo "$ENV_NAME")
 
-          # SITE_URL: use secret if provided, otherwise auto-detect from CF outputs
+          # SITE_URL: use secret if provided, otherwise auto-detect from EB CNAME
+          # (EndpointURL returns the EC2 IP for SingleInstance — use CNAME instead)
           SITE_URL_VALUE="${{ secrets.SITE_URL }}"
           if [ -z "$SITE_URL_VALUE" ]; then
-            SITE_URL_VALUE=$(aws cloudformation describe-stacks \
-              --stack-name "$STACK_NAME" \
-              --query "Stacks[0].Outputs[?OutputKey=='ApplicationURL'].OutputValue" \
+            EB_CNAME=$(aws elasticbeanstalk describe-environments \
+              --application-name "$APP_NAME" \
+              --environment-names "$ACTUAL_ENV" \
+              --query "Environments[0].CNAME" \
               --output text 2>/dev/null || echo "")
-            echo "SITE_URL secret not set — auto-detected: $SITE_URL_VALUE"
+            if [ -n "$EB_CNAME" ] && [ "$EB_CNAME" != "None" ]; then
+              SITE_URL_VALUE="http://$EB_CNAME"
+            fi
+            echo "SITE_URL secret not set — auto-detected from EB CNAME: $SITE_URL_VALUE"
           fi
 
           aws elasticbeanstalk update-environment \
@@ -322,10 +327,19 @@ jobs:
       - name: Deployment summary
         if: always()
         run: |
-          APP_URL=$(aws cloudformation describe-stacks \
+          # Use EB CNAME (not CF ApplicationURL which returns EC2 IP for SingleInstance)
+          ACTUAL_ENV=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
-            --query "Stacks[0].Outputs[?OutputKey=='ApplicationURL'].OutputValue" \
-            --output text 2>/dev/null || echo "Stack not found")
+            --query "Stacks[0].Outputs[?OutputKey=='EBEnvironmentName'].OutputValue" \
+            --output text 2>/dev/null || echo "$ENV_NAME")
+          EB_CNAME=$(aws elasticbeanstalk describe-environments \
+            --application-name "$APP_NAME" \
+            --environment-names "$ACTUAL_ENV" \
+            --query "Environments[0].CNAME" \
+            --output text 2>/dev/null || echo "")
+          APP_URL=$( [ -n "$EB_CNAME" ] && [ "$EB_CNAME" != "None" ] \
+            && echo "http://$EB_CNAME" \
+            || echo "Stack not found" )
 
           AURORA=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
