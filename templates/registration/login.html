@@ -10,11 +10,12 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <style>
-    .orb { position:absolute;border-radius:50%;filter:blur(60px);animation:float 8s ease-in-out infinite; }
+    .login-hero{position:relative;overflow:hidden}
+    .orb{position:absolute;border-radius:50%;filter:blur(60px);animation:float 8s ease-in-out infinite;pointer-events:none}
     .orb-1{width:280px;height:280px;background:rgba(99,102,241,.4);top:5%;right:8%;animation-delay:0s}
     .orb-2{width:200px;height:200px;background:rgba(168,85,247,.3);bottom:15%;left:5%;animation-delay:3s}
     .orb-3{width:150px;height:150px;background:rgba(6,182,212,.25);top:50%;left:30%;animation-delay:1.5s}
-    .grid-dots{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:32px 32px}
+    .grid-dots{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
     .fc{width:100%;padding:.75rem 1rem .75rem 2.75rem;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;color:#0f172a;font-size:.9rem;font-family:'Inter',sans-serif;outline:none;transition:all .2s ease}
     .fc:focus{border-color:#6366f1;background:#fff;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
     .fc::placeholder{color:#94a3b8}
