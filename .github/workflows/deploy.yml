@@ -1,11 +1,8 @@
 name: Deploy to AWS
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
-# • Every push to main  → full deploy (infra + app)
-# • Manual dispatch     → choose scope
+# • Manual dispatch only → choose scope (push trigger disabled)
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       scope:

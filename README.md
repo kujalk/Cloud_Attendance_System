@@ -10,13 +10,14 @@
 
 1. [Features](#features)
 2. [Tech Stack](#tech-stack)
-3. [Architecture](#architecture)
-4. [System Flow Diagram](#system-flow-diagram)
-5. [Project Structure](#project-structure)
-6. [Local Development](#local-development)
-7. [Environment Variables](#environment-variables)
-8. [GitHub Actions CI/CD](#github-actions-cicd)
-9. [Post-Deployment Steps](#post-deployment-steps)
+3. [Screenshots](#screenshots)
+4. [Architecture](#architecture)
+5. [System Flow Diagram](#system-flow-diagram)
+6. [Project Structure](#project-structure)
+7. [Local Development](#local-development)
+8. [Environment Variables](#environment-variables)
+9. [GitHub Actions CI/CD](#github-actions-cicd)
+10. [Post-Deployment Steps](#post-deployment-steps)
 11. [Using the Admin Portal](#using-the-admin-portal)
 12. [Using the Student Portal](#using-the-student-portal)
 13. [Email Notifications](#email-notifications)
@@ -40,7 +41,7 @@
 | **Light UI** | White cards, dark sidebar, indigo accents, animated stats, Inter font |
 | **WhiteNoise static files** | Static assets served with compression — no S3 needed for static |
 | **Aurora Serverless v2** | Auto-scales from 0.5 ACU — pay only for what you use |
-| **GitHub Actions CI/CD** | Push to `main` → automatic CloudFormation + EB deployment |
+| **GitHub Actions CI/CD** | Manual-trigger workflow → CloudFormation + EB deployment with scope selection |
 
 ---
 
@@ -58,6 +59,40 @@
 | Static files | WhiteNoise |
 | Email | Django SMTP (Gmail / Mailgun / SendGrid free tier) |
 | Frontend | Bootstrap 5.3, Chart.js 4, Font Awesome 6, Inter (Google Fonts) |
+
+---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="diagrams/0_login_page.png" alt="Login Page" width="100%"><br>
+      <strong>Login Page</strong> — Split-screen with feature highlights on the left and sign-in form on the right.
+    </td>
+    <td align="center" width="50%">
+      <img src="diagrams/1_main_page.png" alt="Admin Dashboard" width="100%"><br>
+      <strong>Admin Dashboard</strong> — Stats cards, weekly attendance bar chart, and status doughnut.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="diagrams/2_create_student.png" alt="Create Student" width="100%"><br>
+      <strong>Add Student</strong> — Admin form to enroll a student. Triggers automatic account creation and welcome email on save.
+    </td>
+    <td align="center" width="50%">
+      <img src="diagrams/3_mail_received_by_setudent.png" alt="Welcome Email" width="100%"><br>
+      <strong>Welcome Email</strong> — Student receives login URL, username, and temporary password automatically.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="diagrams/4_student_portal.png" alt="Student Portal" width="100%"><br>
+      <strong>Student Portal</strong> — Personal dashboard showing attendance percentage, status breakdown, and recent records.
+    </td>
+    <td align="center"></td>
+  </tr>
+</table>
 
 ---
 
@@ -153,6 +188,13 @@ Cloud_Attendance_System/
 │   ├── architecture.png        # AWS architecture diagram (Pillow-generated)
 │   ├── flow-diagram.svg        # Student registration sequence diagram
 │   └── generate_diagram.py     # Script to regenerate architecture.png
+│
+├── diagrams/
+│   ├── 0_login_page.png        # Login page screenshot
+│   ├── 1_main_page.png         # Admin dashboard screenshot
+│   ├── 2_create_student.png    # Add student form screenshot
+│   ├── 3_mail_received_by_setudent.png  # Welcome email screenshot
+│   └── 4_student_portal.png    # Student portal screenshot
 │
 ├── cloudformation/
 │   └── template.yaml           # CloudFormation stack (VPC + Aurora Serverless v2 + EB)
@@ -316,14 +358,14 @@ python -c "import secrets; print(secrets.token_urlsafe(50))"
 
 ## GitHub Actions CI/CD
 
-Deployment is **fully automated** — push to `main` and the workflow handles everything from zero.
+Deployment is **manually triggered** — go to **Actions → Deploy to AWS → Run workflow** and choose a scope. The push-to-main auto-trigger is disabled.
 
 ### How it works
 
 The workflow at [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs as a single job:
 
 ```
-Push to main
+Manual trigger (Actions → Run workflow)
     │
     ├─ 1. Probe existing resources
     │       checks CF stack status, EB app + env existence
@@ -490,7 +532,15 @@ Admin/Staff users have full control over all data in the system.
 ### Marking Attendance
 
 1. Click **Mark Attendance** → select **Subject** and **Date** → **Load Students**.
-2. Click status badges to cycle: 🟢 **P** → 🔴 **A** → 🟡 **L** → 🔵 **E**.
+2. Click status badges to cycle through attendance states:
+
+   | Badge | Code | Meaning | Description |
+   |-------|------|---------|-------------|
+   | 🟢 | **P** | **Present** | Student attended the class |
+   | 🔴 | **A** | **Absent** | Student did not attend and gave no prior notice |
+   | 🟡 | **L** | **Late** | Student arrived after the class started |
+   | 🔵 | **E** | **Excused** | Student was absent with a valid, approved reason |
+
 3. Click **Save Attendance** — re-saving updates existing records.
 
 ### Reports
